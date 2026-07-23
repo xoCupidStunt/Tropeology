@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import Auth from './Auth';
+import { randomTagline } from './taglines';
 
 /* ---------------------------------------------------------------- */
 /* Constants & helpers                                               */
@@ -269,10 +270,10 @@ async function renderCalendarCanvas({ year, month, books, background, opacity, m
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#b9a5b0';
-  ctx.font = '600 50px Georgia, serif';
+  ctx.font = "600 50px 'Cormorant Garamond', Georgia, serif";
   ctx.fillText(`${MONTH_NAMES[month]} ${year}`, W / 2, pad + 86);
 
-  ctx.font = '400 24px Georgia, serif';
+  ctx.font = "500 24px 'Inter', sans-serif";
   ctx.fillStyle = '#a97e97';
   ctx.fillText(`${monthlyCount} finished this month  •  ${ytdCount} finished in ${year}`, W / 2, pad + 124);
 
@@ -1208,6 +1209,7 @@ function ReadingTracker({ session }) {
   const [bg, setBgState] = useState({ background: null, opacity: 0.72 });
   const [section, setSection] = useState('home');
   const [modal, setModal] = useState(null); // {type:'book'|'release'|'wishlist', payload}
+  const [tagline] = useState(randomTagline);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -1362,7 +1364,7 @@ function ReadingTracker({ session }) {
           </div>
           <button className="icon-btn" onClick={() => supabase.auth.signOut()} title="Sign out"><LogOut size={16} /></button>
         </div>
-        <p className="tagline">Every book, every note, every streak.</p>
+        <p className="tagline">{tagline}</p>
       </header>
 
       <SpineNav active={section} onSelect={setSection} />
@@ -1440,7 +1442,8 @@ const STYLES = `
 .app-shell {
   background: var(--endsheet);
   color: var(--foxing);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-weight: 500;
   min-height: 100%;
   width: 100%;
   border-radius: 12px;
@@ -1457,8 +1460,8 @@ const STYLES = `
 
 .app-header { padding: 22px 24px 8px; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
-.auth-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0e100d; color: #939894; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
-.wordmark { display: flex; align-items: center; gap: 8px; font-family: Georgia, 'Iowan Old Style', serif; font-size: 26px; font-weight: 600; color: var(--brass); letter-spacing: 0.01em; }
+.auth-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0e100d; color: #939894; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500; }
+.wordmark { display: flex; align-items: center; gap: 8px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 600; color: var(--brass); letter-spacing: 0.01em; }
 .tagline { margin: 2px 0 0 28px; color: var(--ash); font-size: 13px; font-style: italic; }
 
 .spine-shelf { padding: 10px 24px 0; }
@@ -1482,7 +1485,7 @@ const STYLES = `
 .view-pad { padding: 20px 24px 36px; }
 
 .section-heading-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
-.section-heading-row h2 { margin: 0; font-family: Georgia, serif; font-size: 20px; font-weight: 600; }
+.section-heading-row h2 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 20px; font-weight: 600; }
 .subheading { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ash); margin: 22px 0 10px; font-weight: 600; }
 .trope-filter-bar { margin-bottom: 18px; }
 .trope-filter-bar label { display: block; font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
@@ -1545,7 +1548,7 @@ const STYLES = `
 .star-icon.clickable { cursor: pointer; }
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--ash); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.empty-state h3 { color: var(--foxing); margin: 4px 0 0; font-family: Georgia, serif; }
+.empty-state h3 { color: var(--foxing); margin: 4px 0 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; }
 .empty-state p { margin: 0 0 6px; font-size: 13px; max-width: 320px; }
 
 .release-teaser { margin-top: 24px; background: var(--wine); color: var(--foxing); padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }
@@ -1559,7 +1562,7 @@ const STYLES = `
 .modal-backdrop { position: fixed; inset: 0; background: rgba(14,16,13,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
 .modal { background: var(--cloth); border-radius: 16px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; padding: 20px; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.modal-header h2 { margin: 0; font-family: Georgia, serif; font-size: 19px; }
+.modal-header h2 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px; font-weight: 600; }
 .tab-row { display: flex; gap: 6px; margin-bottom: 12px; }
 .tab-btn { flex: 1; background: var(--cloth-2); border: none; color: var(--ash); padding: 8px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
 .tab-btn.active { background: var(--brass); color: #0e100d; }
@@ -1621,7 +1624,7 @@ const STYLES = `
 .goals-list { display: flex; flex-direction: column; gap: 16px; }
 .goal-card { background: var(--cloth); border-radius: 14px; padding: 20px; max-width: 480px; }
 .goal-card-header { display: flex; align-items: center; gap: 8px; }
-.goal-name-input { background: transparent; border: none; color: var(--foxing); font-family: Georgia, serif; font-size: 17px; font-weight: 600; padding: 3px 4px; flex: 1; border-radius: 4px; }
+.goal-name-input { background: transparent; border: none; color: var(--foxing); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 17px; font-weight: 600; padding: 3px 4px; flex: 1; border-radius: 4px; }
 .goal-name-input:focus { outline: 1px solid var(--brass); }
 .goal-target-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 14px; }
 .goal-dates-row { display: flex; gap: 16px; margin-bottom: 14px; }

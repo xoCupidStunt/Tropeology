@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { BookMarked } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import { randomTagline } from './taglines';
 
 export default function Auth() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
@@ -9,6 +9,7 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tagline] = useState(randomTagline);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -34,8 +35,8 @@ export default function Auth() {
   return (
     <div style={styles.wrap}>
       <div style={styles.card}>
-        <div style={styles.wordmark}><BookMarked size={22} /> Tropeology</div>
-        <p style={styles.tagline}>Every book, every note, every streak.</p>
+        <img src="/logo.png" alt="Tropeology" style={styles.logo} />
+        <p style={styles.tagline}>{tagline}</p>
 
         <form onSubmit={submit} style={styles.form}>
           <label style={styles.label}>Email</label>
@@ -64,10 +65,10 @@ export default function Auth() {
 }
 
 const styles = {
-  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0e100d', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", padding: 16 },
+  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0e100d', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", fontWeight: 500, padding: 16 },
   card: { background: '#211e1e', borderRadius: 16, padding: 32, width: '100%', maxWidth: 360, color: '#b9a5b0' },
-  wordmark: { display: 'flex', alignItems: 'center', gap: 8, fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 24, fontWeight: 600, color: '#a97e97' },
-  tagline: { color: '#939894', fontSize: 13, fontStyle: 'italic', margin: '4px 0 20px' },
+  logo: { display: 'block', width: 160, height: 'auto', margin: '0 auto' },
+  tagline: { color: '#939894', fontSize: 13, fontStyle: 'italic', margin: '4px 0 20px', textAlign: 'center' },
   form: { display: 'flex', flexDirection: 'column', gap: 6 },
   label: { fontSize: 11.5, color: '#939894', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8 },
   input: { background: '#0e100d', border: '1px solid rgba(185,165,176,0.14)', color: '#b9a5b0', borderRadius: 8, padding: '9px 10px', fontSize: 14, fontFamily: 'inherit' },
