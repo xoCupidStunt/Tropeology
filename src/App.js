@@ -1026,6 +1026,9 @@ function ReleaseFormModal({ onSave, onClose }) {
   const [form, setForm] = useState({ id: uid(), title: '', author: '', coverUrl: '', format: 'physical', releaseDate: todayStr() });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [goodreadsUrl, setGoodreadsUrl] = useState('');
+  const [fetchingGoodreads, setFetchingGoodreads] = useState(false);
+  const [goodreadsError, setGoodreadsError] = useState('');
   const fileRef = useRef(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1034,6 +1037,28 @@ function ReleaseFormModal({ onSave, onClose }) {
     try { setResults(await searchBooks(query)); } catch (e) { setResults([]); } finally { setSearching(false); }
   };
   const pick = (r) => setForm(f => ({ ...f, title: r.title, author: r.author, coverUrl: r.coverUrl || '' }));
+
+  const fetchFromGoodreads = async () => {
+    if (!goodreadsUrl.trim()) return;
+    setFetchingGoodreads(true); setGoodreadsError('');
+    try {
+      const res = await fetch(`/api/goodreads?url=${encodeURIComponent(goodreadsUrl.trim())}`);
+      const info = await res.json();
+      if (!res.ok) throw new Error(info.error || 'Lookup failed.');
+      setForm(f => ({
+        ...f,
+        title: info.title || f.title,
+        author: info.author || f.author,
+        coverUrl: info.coverUrl || f.coverUrl,
+        releaseDate: info.releaseDate || f.releaseDate,
+      }));
+      if (!info.releaseDate) setGoodreadsError('Got the book details, but no release date — add it manually below.');
+    } catch (e) {
+      setGoodreadsError("Couldn't read that Goodreads page. You can search above or enter details manually instead.");
+    } finally {
+      setFetchingGoodreads(false);
+    }
+  };
 
   const handleCoverUpload = async (file) => {
     if (!file) return;
@@ -1057,6 +1082,15 @@ function ReleaseFormModal({ onSave, onClose }) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header"><h2>Add an upcoming release</h2><button className="icon-btn" onClick={onClose}><X size={18} /></button></div>
         <div className="search-panel">
+          <label>Paste a Goodreads link</label>
+          <div className="search-input-row">
+            <input placeholder="https://www.goodreads.com/book/show/…" value={goodreadsUrl} onChange={e => setGoodreadsUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchFromGoodreads()} />
+            <button className="btn btn-brass" onClick={fetchFromGoodreads} disabled={fetchingGoodreads}>{fetchingGoodreads ? '…' : 'Fetch'}</button>
+          </div>
+          {goodreadsError && <p className="hint-error">{goodreadsError}</p>}
+        </div>
+        <div className="search-panel">
+          <label>Or search Open Library</label>
           <div className="search-input-row">
             <input placeholder="Title or author…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runSearch()} />
             <button className="btn btn-brass" onClick={runSearch} disabled={searching}>{searching ? '…' : 'Search'}</button>
@@ -1648,7 +1682,8 @@ const STYLES = `
 .hint-error { color: #dba8af; font-size: 12px; margin: 4px 0; }
 
 .form-body { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
-.form-body label { font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.form-body label, .search-panel label { font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.search-panel label { display: block; margin-bottom: 6px; }
 .form-body input, .form-body textarea { background: var(--endsheet); border: 1px solid rgba(185,165,176,0.14); color: var(--foxing); border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; font-family: inherit; }
 .form-row-cover { display: flex; gap: 12px; }
 .form-cover-preview { width: 64px; height: 96px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
