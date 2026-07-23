@@ -13,6 +13,8 @@ import { randomTagline } from './taglines';
 /* Constants & helpers                                               */
 /* ---------------------------------------------------------------- */
 
+const OWNER_EMAIL = 'xo.apple.xox@gmail.com';
+
 const SECTIONS = [
   { id: 'home',      label: 'Home',       color: '#af839c', icon: Home },
   { id: 'shelf',     label: 'My Shelf',   color: '#875a87', icon: Library },
@@ -99,7 +101,6 @@ function goalProgress(goal, books) {
 
 const emptyData = () => ({
   books: [],
-  releases: [],
   wishlist: [],
   readingLog: [],
   goals: [defaultGoal()],
@@ -672,7 +673,7 @@ function BookGrid({ books, onOpen, onQuickStatus, empty }) {
   return <div className="book-grid">{books.map(b => <BookCard key={b.id} book={b} onOpen={onOpen} onQuickStatus={onQuickStatus} />)}</div>;
 }
 
-function HomeView({ data, onOpen, onQuickStatus, onLogToday, onAdd, goToSection }) {
+function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, goToSection }) {
   const streak = useMemo(() => computeStreak(data.readingLog), [data.readingLog]);
   const loggedToday = data.readingLog.includes(todayStr());
   const currentlyReading = data.books.filter(b => b.status === 'reading');
@@ -683,7 +684,7 @@ function HomeView({ data, onOpen, onQuickStatus, onLogToday, onAdd, goToSection 
   const primaryGoal = activeGoals[0];
   const primaryProgress = primaryGoal ? goalProgress(primaryGoal, data.books) : null;
   const owned = data.books.filter(b => b.owned);
-  const upcomingSoon = [...data.releases]
+  const upcomingSoon = [...releases]
     .filter(r => { const d = daysUntil(r.releaseDate); return d >= 0 && d <= 30; })
     .sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
 
@@ -997,11 +998,35 @@ function GoalsView({ data, onSave, onDelete, onAdd }) {
   );
 }
 
+function fileToCoverBlob(file, maxW = 600) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = img.width * scale, h = img.height * scale;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not process image')), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function ReleaseFormModal({ onSave, onClose }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [form, setForm] = useState({ id: uid(), title: '', author: '', coverUrl: '', format: 'physical', releaseDate: todayStr() });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileRef = useRef(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const runSearch = async () => {
@@ -1009,6 +1034,23 @@ function ReleaseFormModal({ onSave, onClose }) {
     try { setResults(await searchBooks(query)); } catch (e) { setResults([]); } finally { setSearching(false); }
   };
   const pick = (r) => setForm(f => ({ ...f, title: r.title, author: r.author, coverUrl: r.coverUrl || '' }));
+
+  const handleCoverUpload = async (file) => {
+    if (!file) return;
+    setUploading(true); setUploadError('');
+    try {
+      const blob = await fileToCoverBlob(file);
+      const path = `${uid()}.jpg`;
+      const { error: upErr } = await supabase.storage.from('release-covers').upload(path, blob, { contentType: 'image/jpeg' });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('release-covers').getPublicUrl(path);
+      setForm(f => ({ ...f, coverUrl: pub.publicUrl }));
+    } catch (e) {
+      setUploadError('Could not upload cover photo.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -1033,6 +1075,17 @@ function ReleaseFormModal({ onSave, onClose }) {
           <input value={form.title} onChange={e => set('title', e.target.value)} />
           <label>Author</label>
           <input value={form.author} onChange={e => set('author', e.target.value)} />
+          <div className="form-row-cover">
+            {form.coverUrl ? <img src={form.coverUrl} className="form-cover-preview" alt="" /> : <FallbackCover title={form.title} w={64} h={96} radius={6} />}
+            <div className="form-cover-fields">
+              <label>Cover photo</label>
+              <button type="button" className="btn btn-sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <Upload size={13} /> {uploading ? 'Uploading…' : 'Upload cover photo'}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleCoverUpload(e.target.files?.[0])} />
+              {uploadError && <p className="hint-error">{uploadError}</p>}
+            </div>
+          </div>
           <label>Format</label>
           <div className="chip-row">
             <button className={`chip ${form.format === 'physical' ? 'chip-on' : ''}`} onClick={() => set('format', 'physical')}><BookOpen size={13} /> Book</button>
@@ -1051,15 +1104,15 @@ function ReleaseFormModal({ onSave, onClose }) {
   );
 }
 
-function ReleasesView({ data, onAdd, onRemove, onConvertToTBR }) {
-  const sorted = [...data.releases].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
+function ReleasesView({ releases, isOwner, onAdd, onRemove, onConvertToTBR }) {
+  const sorted = [...releases].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
   return (
     <div className="view-pad">
       <div className="section-heading-row">
         <h2>Upcoming releases</h2>
-        <button className="btn btn-sm btn-brass" onClick={onAdd}><Plus size={13} /> Add release</button>
+        {isOwner && <button className="btn btn-sm btn-brass" onClick={onAdd}><Plus size={13} /> Add release</button>}
       </div>
-      {!sorted.length && <EmptyState icon={Clock} title="Nothing on the horizon yet" body="Add books and audiobooks you're excited about." action={<button className="btn btn-brass" onClick={onAdd}>Add release</button>} />}
+      {!sorted.length && <EmptyState icon={Clock} title="Nothing on the horizon yet" body="Add books and audiobooks you're excited about." action={isOwner ? <button className="btn btn-brass" onClick={onAdd}>Add release</button> : null} />}
       <div className="release-list">
         {sorted.map(r => {
           const d = daysUntil(r.releaseDate);
@@ -1077,7 +1130,7 @@ function ReleasesView({ data, onAdd, onRemove, onConvertToTBR }) {
               </div>
               <div className="release-actions">
                 {d <= 0 && <button className="btn btn-sm" onClick={() => onConvertToTBR(r)}>Add to TBR</button>}
-                <button className="icon-btn" onClick={() => onRemove(r.id)}><Trash2 size={14} /></button>
+                {isOwner && <button className="icon-btn" onClick={() => onRemove(r.id)}><Trash2 size={14} /></button>}
               </div>
             </div>
           );
@@ -1205,8 +1258,10 @@ function SpineNav({ active, onSelect }) {
 
 function ReadingTracker({ session }) {
   const userId = session.user.id;
+  const isOwner = session.user.email === OWNER_EMAIL;
   const [data, setData] = useState(null);
   const [bg, setBgState] = useState({ background: null, opacity: 0.72 });
+  const [releases, setReleases] = useState([]);
   const [section, setSection] = useState('home');
   const [modal, setModal] = useState(null); // {type:'book'|'release'|'wishlist', payload}
   const [tagline] = useState(randomTagline);
@@ -1243,6 +1298,14 @@ function ReadingTracker({ session }) {
       loadedRef.current = true;
     })();
   }, [userId]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: rows, error } = await supabase.from('releases').select('*').order('release_date', { ascending: true });
+      if (error) { console.error('Failed to load releases:', error); return; }
+      setReleases((rows || []).map(r => ({ id: r.id, title: r.title, author: r.author, coverUrl: r.cover_url, format: r.format, releaseDate: r.release_date })));
+    })();
+  }, []);
 
   useEffect(() => {
     if (!loadedRef.current || !data) return;
@@ -1294,11 +1357,20 @@ function ReadingTracker({ session }) {
     setData(d => d.readingLog.includes(t) ? d : { ...d, readingLog: [...d.readingLog, t] });
   };
 
-  const saveRelease = (release) => {
-    setData(d => ({ ...d, releases: [...d.releases, release] }));
+  const saveRelease = async (release) => {
+    const { data: row, error } = await supabase.from('releases').insert({
+      title: release.title, author: release.author, cover_url: release.coverUrl || null,
+      format: release.format, release_date: release.releaseDate,
+    }).select().single();
+    if (error) { console.error('Failed to add release:', error); return; }
+    setReleases(r => [...r, { id: row.id, title: row.title, author: row.author, coverUrl: row.cover_url, format: row.format, releaseDate: row.release_date }]);
     setModal(null);
   };
-  const removeRelease = (id) => setData(d => ({ ...d, releases: d.releases.filter(r => r.id !== id) }));
+  const removeRelease = async (id) => {
+    const { error } = await supabase.from('releases').delete().eq('id', id);
+    if (error) { console.error('Failed to remove release:', error); return; }
+    setReleases(r => r.filter(x => x.id !== id));
+  };
   const convertToTBR = (release) => {
     saveBook({
       id: uid(), title: release.title, author: release.author, coverUrl: release.coverUrl || '',
@@ -1306,7 +1378,6 @@ function ReadingTracker({ session }) {
       currentPage: 0, totalPages: 0, percent: 0, isSpicy: false, spicyNotes: [], tropes: [],
       starRating: 0, spiceRating: 0, dateAdded: todayStr(), dateStarted: null, dateFinished: null, notes: '',
     });
-    removeRelease(release.id);
   };
 
   const saveGoal = (goal) => setData(d => ({ ...d, goals: d.goals.some(g => g.id === goal.id) ? d.goals.map(g => g.id === goal.id ? goal : g) : [...d.goals, goal] }));
@@ -1370,14 +1441,14 @@ function ReadingTracker({ session }) {
       <SpineNav active={section} onSelect={setSection} />
 
       <main className="app-main">
-        {section === 'home' && <HomeView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} />}
+        {section === 'home' && <HomeView data={data} releases={releases} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} />}
         {section === 'shelf' && <ShelfView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} onOpenWishlist={openEditWishlist} onAddWishlist={openAddWishlist} onPurchased={purchaseWishlistItem} />}
         {section === 'tbr' && <StatusListView title="TBR" icon={BookMarked} status="tbr" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Add the books you're excited to get to." />}
         {section === 'reading' && <StatusListView title="Currently reading" icon={BookOpen} status="reading" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Start a book from your TBR shelf." />}
         {section === 'finished' && <StatusListView title="Finished" icon={Check} status="read" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Books you've completed will show up here, with your ratings and reviews." />}
         {section === 'calendar' && <CalendarView data={data} bg={bg} setBg={setBg} />}
         {section === 'goals' && <GoalsView data={data} onSave={saveGoal} onDelete={deleteGoal} onAdd={addGoal} />}
-        {section === 'releases' && <ReleasesView data={data} onAdd={() => setModal({ type: 'release' })} onRemove={removeRelease} onConvertToTBR={convertToTBR} />}
+        {section === 'releases' && <ReleasesView releases={releases} isOwner={isOwner} onAdd={() => setModal({ type: 'release' })} onRemove={removeRelease} onConvertToTBR={convertToTBR} />}
       </main>
 
       {modal?.type === 'book' && (
