@@ -1465,7 +1465,7 @@ const STYLES = `
 .tagline { margin: 2px 0 0 28px; color: var(--ash); font-size: 13px; font-style: italic; }
 
 .spine-shelf { padding: 10px 24px 0; }
-.spine-nav { display: flex; align-items: flex-end; gap: 5px; height: 96px; overflow-x: auto; padding-bottom: 0; }
+.spine-nav { display: flex; align-items: flex-end; gap: 5px; height: 96px; overflow-x: auto; padding-bottom: 0; -webkit-overflow-scrolling: touch; }
 .spine {
   writing-mode: vertical-rl; transform: rotate(180deg) translateZ(0);
   min-width: 34px; height: 84px; border: none; border-radius: 7px 7px 2px 2px;
@@ -1552,7 +1552,7 @@ const STYLES = `
 .empty-state p { margin: 0 0 6px; font-size: 13px; max-width: 320px; }
 
 .release-teaser { margin-top: 24px; background: var(--wine); color: var(--foxing); padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }
-.release-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.release-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
 .release-mini-card { flex: 0 0 auto; width: 84px; cursor: pointer; text-align: center; }
 .release-mini-card img { width: 64px; height: 94px; object-fit: cover; border-radius: 5px; margin: 0 auto 6px; display: block; }
 .release-mini-title { font-size: 11px; font-weight: 600; line-height: 1.25; max-height: 28px; overflow: hidden; }
@@ -1634,7 +1634,7 @@ const STYLES = `
 
 /* Releases */
 .release-list { display: flex; flex-direction: column; gap: 10px; }
-.release-row { display: flex; align-items: center; gap: 12px; background: var(--cloth); border-radius: 12px; padding: 10px 14px; }
+.release-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: var(--cloth); border-radius: 12px; padding: 10px 14px; }
 .release-cover { width: 48px; height: 70px; object-fit: cover; border-radius: 4px; }
 .release-info { flex: 1; min-width: 0; }
 .release-countdown { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
@@ -1644,5 +1644,12 @@ const STYLES = `
   .form-grid-2 { grid-template-columns: 1fr; }
   .cal-controls { grid-template-columns: 1fr; }
   .home-hero { grid-template-columns: 1fr; }
+  .goal-dates-row { flex-direction: column; gap: 10px; }
+  .form-body input, .form-body textarea,
+  .search-input-row input,
+  .goal-dates-row input[type=date] { font-size: 16px; }
+  .icon-btn { padding: 10px; }
+  .chip { padding: 8px 12px; }
+  .tab-btn { padding: 10px; }
 }
 `;

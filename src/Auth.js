@@ -71,7 +71,7 @@ const styles = {
   tagline: { color: '#939894', fontSize: 13, fontStyle: 'italic', margin: '4px 0 20px', textAlign: 'center' },
   form: { display: 'flex', flexDirection: 'column', gap: 6 },
   label: { fontSize: 11.5, color: '#939894', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8 },
-  input: { background: '#0e100d', border: '1px solid rgba(185,165,176,0.14)', color: '#b9a5b0', borderRadius: 8, padding: '9px 10px', fontSize: 14, fontFamily: 'inherit' },
+  input: { background: '#0e100d', border: '1px solid rgba(185,165,176,0.14)', color: '#b9a5b0', borderRadius: 8, padding: '9px 10px', fontSize: 16, fontFamily: 'inherit' },
   error: { color: '#cf5969', fontSize: 12.5, margin: '4px 0 0' },
   message: { color: '#e1c1e1', fontSize: 12.5, margin: '4px 0 0' },
   btn: { background: '#a97e97', color: '#0e100d', border: 'none', borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginTop: 14 },
