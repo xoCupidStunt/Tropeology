@@ -1,4 +1,4 @@
--- Marginalia — Supabase schema
+-- Tropeology — Supabase schema
 -- Run this once in your Supabase project's SQL Editor (Project -> SQL Editor -> New query).
 -- Safe to re-run: uses IF NOT EXISTS / CREATE OR REPLACE where possible.
 

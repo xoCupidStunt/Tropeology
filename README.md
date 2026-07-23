@@ -1,4 +1,4 @@
-# Marginalia — deployment guide
+# Tropeology — deployment guide
 
 A personal reading tracker: Create React App + Supabase (Postgres + Auth + Row Level Security) + Vercel.
 This mirrors the Gen.io stack, but on your own personal Supabase/Vercel/GitHub accounts — nothing here touches Trustwave's infrastructure.
@@ -19,7 +19,7 @@ Time: ~20 minutes.
 
 1. Go to **[supabase.com](https://supabase.com)** and sign in (or create a personal account — use your own email, not a Trustwave one).
 2. Click **New project**.
-   - Name: `marginalia` (or anything you like)
+   - Name: `tropeology` (or anything you like)
    - Database password: generate and **save it somewhere** (a password manager) — you likely won't need it day-to-day, but you will if you ever connect a external Postgres client.
    - Region: pick whichever is closest to you.
 3. Wait ~2 minutes for it to finish provisioning.
@@ -42,7 +42,7 @@ By default Supabase requires you to click a confirmation link before you can sig
 ## 2. Push the code to GitHub
 
 1. Go to **[github.com](https://github.com)**, sign in with your personal account, and click **New repository**.
-   - Name: `marginalia`
+   - Name: `tropeology`
    - Visibility: **Private** (it's your personal reading data — no reason to make it public)
    - Don't initialize with a README/gitignore — this project already has them.
 2. On your computer, open a terminal in this project folder and run:
@@ -52,7 +52,7 @@ By default Supabase requires you to click a confirmation link before you can sig
    git add .
    git commit -m "Initial commit"
    git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/marginalia.git
+   git remote add origin https://github.com/YOUR_USERNAME/tropeology.git
    git push -u origin main
    ```
 
@@ -65,7 +65,7 @@ Your `.env` file (if you create one locally) is already excluded via `.gitignore
 ## 3. Deploy on Vercel
 
 1. Go to **[vercel.com](https://vercel.com)** and sign in with your GitHub account (personal, not Trustwave's org).
-2. Click **Add New -> Project**, and import the `marginalia` repo you just pushed.
+2. Click **Add New -> Project**, and import the `tropeology` repo you just pushed.
 3. Vercel will auto-detect Create React App. Leave the build settings as default:
    - Build command: `react-scripts build` (or leave blank to use the default)
    - Output directory: `build`
@@ -76,7 +76,7 @@ Your `.env` file (if you create one locally) is already excluded via `.gitignore
    | `REACT_APP_SUPABASE_URL` | your Project URL from step 1.6 |
    | `REACT_APP_SUPABASE_ANON_KEY` | your anon public key from step 1.6 |
 
-5. Click **Deploy**. In about a minute you'll get a live URL like `marginalia-yourname.vercel.app`.
+5. Click **Deploy**. In about a minute you'll get a live URL like `tropeology-yourname.vercel.app`.
 6. Open it, create your account (email + password), and you're in — same login works from any device from now on.
 
 If you ever change the Supabase keys, update them in **Vercel -> Project -> Settings -> Environment Variables**, then redeploy (Vercel -> Deployments -> ⋯ -> Redeploy) so the new values get baked into the build.

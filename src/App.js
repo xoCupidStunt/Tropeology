@@ -1302,7 +1302,7 @@ function ReadingTracker({ session }) {
         <div className="header-row">
           <div className="wordmark">
             <BookMarked size={20} />
-            <span>Marginalia</span>
+            <span>Tropeology</span>
           </div>
           <button className="icon-btn" onClick={() => supabase.auth.signOut()} title="Sign out"><LogOut size={16} /></button>
         </div>

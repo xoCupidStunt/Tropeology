@@ -34,7 +34,7 @@ export default function Auth() {
   return (
     <div style={styles.wrap}>
       <div style={styles.card}>
-        <div style={styles.wordmark}><BookMarked size={22} /> Marginalia</div>
+        <div style={styles.wordmark}><BookMarked size={22} /> Tropeology</div>
         <p style={styles.tagline}>Every book, every note, every streak.</p>
 
         <form onSubmit={submit} style={styles.form}>
