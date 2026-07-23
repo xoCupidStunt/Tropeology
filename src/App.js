@@ -51,6 +51,14 @@ function hashHue(str) {
   return COVER_HUES[Math.abs(h) % COVER_HUES.length];
 }
 
+// Upgrades cover URLs saved before the switch to Open Library's larger
+// "-L" size, so existing books/wishlist items get the sharper image too.
+function upgradeCoverUrl(url) {
+  if (!url) return url;
+  const m = url.match(/^(https:\/\/covers\.openlibrary\.org\/b\/id\/\d+)-[SM]\.jpg$/);
+  return m ? `${m[1]}-L.jpg` : url;
+}
+
 function initialsOf(title) {
   return (title || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('');
 }
@@ -247,7 +255,7 @@ async function searchBooks(query) {
     author: (d.author_name && d.author_name[0]) || 'Unknown author',
     year: d.first_publish_year || null,
     pages: d.number_of_pages_median || null,
-    coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+    coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg` : null,
   }));
 }
 
@@ -1526,6 +1534,8 @@ function ReadingTracker({ session }) {
             }
           }
           if (!parsed.wishlist) d.wishlist = [];
+          d.books = d.books.map(b => ({ ...b, coverUrl: upgradeCoverUrl(b.coverUrl) }));
+          d.wishlist = d.wishlist.map(w => ({ ...w, coverUrl: upgradeCoverUrl(w.coverUrl) }));
         }
       } catch (e) { console.error('Failed to load reading data:', e); }
       try {
@@ -1543,7 +1553,7 @@ function ReadingTracker({ session }) {
     (async () => {
       const { data: rows, error } = await supabase.from('releases').select('*').order('release_date', { ascending: true });
       if (error) { console.error('Failed to load releases:', error); return; }
-      setReleases((rows || []).map(r => ({ id: r.id, title: r.title, author: r.author, coverUrl: r.cover_url, blurb: r.blurb, format: r.format, releaseDate: r.release_date })));
+      setReleases((rows || []).map(r => ({ id: r.id, title: r.title, author: r.author, coverUrl: upgradeCoverUrl(r.cover_url), blurb: r.blurb, format: r.format, releaseDate: r.release_date })));
     })();
   }, []);
 
@@ -1880,7 +1890,7 @@ const STYLES = `
 .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
 .book-card { display: flex; gap: 12px; background: var(--cloth); border-radius: 12px; padding: 12px; cursor: pointer; transition: transform 0.12s, background 0.12s; }
 .book-card:hover { transform: translateY(-2px); background: var(--cloth-2); }
-.book-cover-img { object-fit: cover; flex-shrink: 0; }
+.book-cover-img { object-fit: cover; flex-shrink: 0; transform: translateZ(0); backface-visibility: hidden; }
 .book-cover-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; flex-shrink: 0; }
 .book-card-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
 .book-card-title { font-weight: 700; font-size: 14px; line-height: 1.25; }
