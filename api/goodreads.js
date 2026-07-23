@@ -15,6 +15,45 @@ function normalizeDate(d) {
   return parsed.toISOString().slice(0, 10);
 }
 
+const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+
+// Parses date fragments Goodreads shows for not-yet-published books, e.g.
+// "Expected 4 Aug 26" or "Expected publication: August 4, 2026".
+function parseExpectedDate(text) {
+  if (!text) return null;
+  let m = text.match(/\b(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{2,4})\b/);
+  if (m) {
+    const day = parseInt(m[1], 10);
+    const mon = MONTHS[m[2].slice(0, 3).toLowerCase()];
+    let year = parseInt(m[3], 10);
+    if (year < 100) year += 2000;
+    if (mon !== undefined && !isNaN(day) && !isNaN(year)) {
+      const iso = new Date(Date.UTC(year, mon, day));
+      if (!isNaN(iso.getTime())) return iso.toISOString().slice(0, 10);
+    }
+  }
+  m = text.match(/\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b/);
+  if (m) {
+    const mon = MONTHS[m[1].slice(0, 3).toLowerCase()];
+    const day = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    if (mon !== undefined && !isNaN(day) && !isNaN(year)) {
+      const iso = new Date(Date.UTC(year, mon, day));
+      if (!isNaN(iso.getTime())) return iso.toISOString().slice(0, 10);
+    }
+  }
+  return null;
+}
+
+function toPlainText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ');
+}
+
 module.exports = async (req, res) => {
   const { url } = req.query;
   if (!url || typeof url !== 'string') {
@@ -41,6 +80,8 @@ module.exports = async (req, res) => {
     const pageRes = await fetch(parsed.toString(), {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
       },
       signal: controller.signal,
     });
@@ -74,6 +115,14 @@ module.exports = async (req, res) => {
         }
       } catch (e) {
         // Not valid/relevant JSON-LD — skip it.
+      }
+    }
+
+    if (!releaseDate) {
+      const plainText = decodeHtmlEntities(toPlainText(html));
+      const idx = plainText.search(/Expected/i);
+      if (idx !== -1) {
+        releaseDate = parseExpectedDate(plainText.slice(idx, idx + 40));
       }
     }
 
