@@ -13,21 +13,21 @@ import Auth from './Auth';
 /* ---------------------------------------------------------------- */
 
 const SECTIONS = [
-  { id: 'home',      label: 'Home',       color: '#C9A24B', icon: Home },
-  { id: 'shelf',     label: 'My Shelf',   color: '#2B6E68', icon: Library },
-  { id: 'wishlist',  label: 'Wishlist',   color: '#8A5A2B', icon: ShoppingCart },
-  { id: 'tbr',       label: 'TBR',        color: '#6B4270', icon: BookMarked },
-  { id: 'reading',   label: 'Reading',    color: '#C0472E', icon: BookOpen },
-  { id: 'finished',  label: 'Finished',   color: '#3C6B44', icon: Check },
-  { id: 'calendar',  label: 'Calendar',   color: '#35507D', icon: CalendarDays },
-  { id: 'goals',     label: 'Goals',      color: '#A67A22', icon: Target },
-  { id: 'releases',  label: 'Releases',   color: '#7A3347', icon: Clock },
+  { id: 'home',      label: 'Home',       color: '#a97e97', icon: Home },
+  { id: 'shelf',     label: 'My Shelf',   color: '#765676', icon: Library },
+  { id: 'wishlist',  label: 'Wishlist',   color: '#7e5544', icon: ShoppingCart },
+  { id: 'tbr',       label: 'TBR',        color: '#815889', icon: BookMarked },
+  { id: 'reading',   label: 'Reading',    color: '#762d37', icon: BookOpen },
+  { id: 'finished',  label: 'Finished',   color: '#6f3e4f', icon: Check },
+  { id: 'calendar',  label: 'Calendar',   color: '#5d4659', icon: CalendarDays },
+  { id: 'goals',     label: 'Goals',      color: '#945f57', icon: Target },
+  { id: 'releases',  label: 'Releases',   color: '#682b33', icon: Clock },
 ];
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS = ['S','M','T','W','T','F','S'];
 
-const COVER_HUES = [ '#2B6E68', '#6B4270', '#C0472E', '#3C6B44', '#35507D', '#A67A22', '#7A3347', '#C9A24B' ];
+const COVER_HUES = [ '#765676', '#815889', '#762d37', '#6f3e4f', '#5d4659', '#945f57', '#682b33', '#a97e97' ];
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -249,8 +249,8 @@ async function renderCalendarCanvas({ year, month, books, background, opacity, m
   }
   if (!background) {
     const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, '#1E2B24');
-    grad.addColorStop(1, '#35507D');
+    grad.addColorStop(0, '#0e100d');
+    grad.addColorStop(1, '#5d4659');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
   }
@@ -261,12 +261,12 @@ async function renderCalendarCanvas({ year, month, books, background, opacity, m
   ctx.fill();
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#F3ECDD';
+  ctx.fillStyle = '#b9a5b0';
   ctx.font = '600 50px Georgia, serif';
   ctx.fillText(`${MONTH_NAMES[month]} ${year}`, W / 2, pad + 86);
 
   ctx.font = '400 24px Georgia, serif';
-  ctx.fillStyle = '#C9A24B';
+  ctx.fillStyle = '#a97e97';
   ctx.fillText(`${monthlyCount} finished this month  •  ${ytdCount} finished in ${year}`, W / 2, pad + 124);
 
   const gridTop = pad + 168;
@@ -294,7 +294,7 @@ async function renderCalendarCanvas({ year, month, books, background, opacity, m
     ctx.strokeRect(x + 3, y + 3, cellW - 6, cellH - 6);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(243,236,221,0.85)';
+    ctx.fillStyle = 'rgba(185,165,176,0.85)';
     ctx.font = '500 17px system-ui, sans-serif';
     ctx.fillText(String(day), x + 10, y + 22);
 
@@ -331,7 +331,7 @@ async function renderCalendarCanvas({ year, month, books, background, opacity, m
         cx += thumbSize + 4;
       }
       if (finished.length > maxShow) {
-        ctx.fillStyle = '#C9A24B';
+        ctx.fillStyle = '#a97e97';
         ctx.font = '600 14px system-ui, sans-serif';
         ctx.fillText(`+${finished.length - maxShow}`, cx, cy + thumbSize / 2 + 5);
       }
@@ -813,7 +813,7 @@ function CalendarView({ data, bg, setBg }) {
       </div>
       <p className="cal-counts mono">{finishedThisMonth} finished this month · {finishedThisYear} finished in {cursor.year}</p>
 
-      <div className="cal-export-wrap" style={{ backgroundImage: bg.background ? `url(${bg.background})` : 'linear-gradient(135deg,#1E2B24,#35507D)' }}>
+      <div className="cal-export-wrap" style={{ backgroundImage: bg.background ? `url(${bg.background})` : 'linear-gradient(135deg,#0e100d,#5d4659)' }}>
         <div className="cal-panel" style={{ background: `rgba(24,34,29,${bg.opacity ?? 0.72})` }}>
           <div className="cal-grid-header">
             {WEEKDAYS.map((w, i) => <span key={i}>{w}</span>)}
@@ -1367,19 +1367,19 @@ export default function App() {
 
 const STYLES = `
 :root {
-  --endsheet: #1E2B24;
-  --cloth: #263B31;
-  --cloth-2: #2E4739;
-  --foxing: #F3ECDD;
-  --ash: #93A896;
-  --brass: #C9A24B;
-  --chili: #C0472E;
-  --forest: #3C6B44;
-  --teal: #2B6E68;
-  --plum: #6B4270;
-  --navy: #35507D;
-  --ochre: #A67A22;
-  --wine: #7A3347;
+  --endsheet: #0e100d;
+  --cloth: #211e1e;
+  --cloth-2: #31292c;
+  --foxing: #b9a5b0;
+  --ash: #939894;
+  --brass: #a97e97;
+  --chili: #762d37;
+  --forest: #6f3e4f;
+  --teal: #765676;
+  --plum: #815889;
+  --navy: #5d4659;
+  --ochre: #945f57;
+  --wine: #682b33;
 }
 * { box-sizing: border-box; }
 .app-shell {
@@ -1402,7 +1402,7 @@ const STYLES = `
 
 .app-header { padding: 22px 24px 8px; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
-.auth-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #1E2B24; color: #93A896; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+.auth-loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0e100d; color: #939894; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
 .wordmark { display: flex; align-items: center; gap: 8px; font-family: Georgia, 'Iowan Old Style', serif; font-size: 26px; font-weight: 600; color: var(--brass); letter-spacing: 0.01em; }
 .tagline { margin: 2px 0 0 28px; color: var(--ash); font-size: 13px; font-style: italic; }
 
@@ -1419,7 +1419,7 @@ const STYLES = `
 .spine .spine-icon { transform: rotate(90deg); }
 .spine:hover { opacity: 0.92; }
 .spine.active { opacity: 1; transform: translateY(-12px) rotate(180deg); height: 96px; box-shadow: 0 10px 18px rgba(0,0,0,0.35); }
-.shelf-board { height: 8px; background: linear-gradient(180deg, #4a3624, #2c2013); border-radius: 0 0 6px 6px; margin-top: -2px; }
+.shelf-board { height: 8px; background: linear-gradient(180deg, #3a1f28, #170f12); border-radius: 0 0 6px 6px; margin-top: -2px; }
 
 .app-main { flex: 1; overflow-y: auto; }
 .view-pad { padding: 20px 24px 36px; }
@@ -1429,19 +1429,19 @@ const STYLES = `
 .subheading { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ash); margin: 22px 0 10px; font-weight: 600; }
 
 .btn {
-  background: var(--cloth-2); color: var(--foxing); border: 1px solid rgba(243,236,221,0.14);
+  background: var(--cloth-2); color: var(--foxing); border: 1px solid rgba(185,165,176,0.14);
   padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px; transition: transform 0.12s, background 0.12s;
 }
 .btn:hover { transform: translateY(-1px); }
 .btn:disabled { opacity: 0.45; cursor: default; transform: none; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-brass { background: var(--brass); color: #241B08; border-color: transparent; }
+.btn-brass { background: var(--brass); color: #0e100d; border-color: transparent; }
 .btn-chili { background: var(--chili); color: #fff; border-color: transparent; }
 .btn-forest { background: var(--forest); color: #fff; border-color: transparent; }
-.btn-danger { background: transparent; color: #E27A63; border-color: #E27A63; }
+.btn-danger { background: transparent; color: #cf5969; border-color: #cf5969; }
 .icon-btn { background: transparent; border: none; color: var(--foxing); cursor: pointer; padding: 6px; border-radius: 6px; display: flex; }
-.icon-btn:hover { background: rgba(243,236,221,0.08); }
+.icon-btn:hover { background: rgba(185,165,176,0.08); }
 .link { color: var(--brass); cursor: pointer; text-decoration: underline; }
 
 .home-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 26px; }
@@ -1466,14 +1466,14 @@ const STYLES = `
 .book-card-author { color: var(--ash); font-size: 12.5px; }
 .badge-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
 .badge { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; }
-.badge-teal { background: rgba(43,110,104,0.35); color: #8FD6CC; }
-.badge-chili { background: rgba(192,71,46,0.3); color: #F3A78F; }
-.badge-forest { background: rgba(60,107,68,0.35); color: #A7D8AE; }
-.badge-muted { background: rgba(147,168,150,0.18); color: var(--ash); }
+.badge-teal { background: rgba(118,86,118,0.35); color: #e1c1e1; }
+.badge-chili { background: rgba(118,45,55,0.3); color: #e0aeb5; }
+.badge-forest { background: rgba(111,62,79,0.35); color: #debac7; }
+.badge-muted { background: rgba(147,152,148,0.18); color: var(--ash); }
 .card-progress { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .card-ratings { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
 
-.progress-track { flex: 1; height: 6px; background: rgba(147,168,150,0.2); border-radius: 4px; overflow: hidden; }
+.progress-track { flex: 1; height: 6px; background: rgba(147,152,148,0.2); border-radius: 4px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 4px; }
 .fill-brass { background: var(--brass); }
 .fill-chili { background: var(--chili); }
@@ -1496,13 +1496,13 @@ const STYLES = `
 .release-mini-days { font-size: 10.5px; color: var(--brass); margin-top: 2px; }
 
 /* Modal */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(10,14,11,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(14,16,13,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
 .modal { background: var(--cloth); border-radius: 16px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; padding: 20px; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .modal-header h2 { margin: 0; font-family: Georgia, serif; font-size: 19px; }
 .tab-row { display: flex; gap: 6px; margin-bottom: 12px; }
 .tab-btn { flex: 1; background: var(--cloth-2); border: none; color: var(--ash); padding: 8px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-.tab-btn.active { background: var(--brass); color: #241B08; }
+.tab-btn.active { background: var(--brass); color: #0e100d; }
 .search-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .search-input-row input { flex: 1; }
 .search-results { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
@@ -1511,18 +1511,18 @@ const STYLES = `
 .search-result img { width: 40px; height: 58px; object-fit: cover; border-radius: 4px; }
 .sr-title { font-size: 13px; font-weight: 700; }
 .sr-author { font-size: 11.5px; color: var(--ash); }
-.hint-error { color: #E8A47B; font-size: 12px; margin: 4px 0; }
+.hint-error { color: #dba8af; font-size: 12px; margin: 4px 0; }
 
 .form-body { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
 .form-body label { font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
-.form-body input, .form-body textarea { background: var(--endsheet); border: 1px solid rgba(243,236,221,0.14); color: var(--foxing); border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; font-family: inherit; }
+.form-body input, .form-body textarea { background: var(--endsheet); border: 1px solid rgba(185,165,176,0.14); color: var(--foxing); border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; font-family: inherit; }
 .form-row-cover { display: flex; gap: 12px; }
 .form-cover-preview { width: 64px; height: 96px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .form-cover-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.chip { background: var(--endsheet); border: 1px solid rgba(243,236,221,0.14); color: var(--ash); padding: 6px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-.chip-on { background: var(--brass); color: #241B08; border-color: transparent; }
+.chip { background: var(--endsheet); border: 1px solid rgba(185,165,176,0.14); color: var(--ash); padding: 6px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.chip-on { background: var(--brass); color: #0e100d; border-color: transparent; }
 .checkbox-row { display: flex; align-items: center; gap: 6px; text-transform: none; font-size: 13px; color: var(--foxing); font-weight: 500; }
 .progress-editor, .spicy-editor, .finish-panel { background: var(--endsheet); border-radius: 10px; padding: 12px; }
 .percent-row { display: flex; align-items: center; gap: 10px; }
@@ -1530,7 +1530,7 @@ const STYLES = `
 .pages-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .spicy-add-row { display: flex; gap: 6px; margin-top: 8px; }
 .spicy-notes-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.spicy-note { background: rgba(192,71,46,0.25); color: #F3A78F; font-size: 12px; padding: 4px 8px; border-radius: 14px; display: inline-flex; align-items: center; gap: 5px; }
+.spicy-note { background: rgba(118,45,55,0.25); color: #e0aeb5; font-size: 12px; padding: 4px 8px; border-radius: 14px; display: inline-flex; align-items: center; gap: 5px; }
 .spicy-note svg { cursor: pointer; }
 .finish-panel { display: flex; flex-direction: column; gap: 10px; }
 .finish-panel-ratings { display: flex; align-items: center; gap: 20px; color: var(--brass); }
@@ -1547,9 +1547,9 @@ const STYLES = `
 .cal-panel { border-radius: 12px; padding: 16px; }
 .cal-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--ash); margin-bottom: 6px; font-weight: 700; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-cell { min-height: 64px; border: 1px solid rgba(243,236,221,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.cal-cell { min-height: 64px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
 .cal-cell.empty { border: none; }
-.cal-day-num { font-size: 11px; color: rgba(243,236,221,0.75); }
+.cal-day-num { font-size: 11px; color: rgba(185,165,176,0.75); }
 .cal-cell-covers { display: flex; gap: 2px; flex-wrap: wrap; margin-top: auto; }
 .cal-more { font-size: 10px; color: var(--brass); align-self: center; }
 .cal-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; margin-top: 16px; }
@@ -1565,7 +1565,7 @@ const STYLES = `
 .goal-target-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 14px; }
 .goal-dates-row { display: flex; gap: 16px; margin-bottom: 14px; }
 .goal-dates-row label { display: block; font-size: 11px; color: var(--ash); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
-.goal-dates-row input[type=date] { background: var(--endsheet); border: 1px solid rgba(243,236,221,0.14); color: var(--foxing); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
+.goal-dates-row input[type=date] { background: var(--endsheet); border: 1px solid rgba(185,165,176,0.14); color: var(--foxing); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
 .goal-progress-label { margin-top: 6px; font-size: 12.5px; color: var(--ash); }
 
 /* Releases */

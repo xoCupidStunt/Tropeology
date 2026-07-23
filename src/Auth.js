@@ -64,15 +64,15 @@ export default function Auth() {
 }
 
 const styles = {
-  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1E2B24', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", padding: 16 },
-  card: { background: '#263B31', borderRadius: 16, padding: 32, width: '100%', maxWidth: 360, color: '#F3ECDD' },
-  wordmark: { display: 'flex', alignItems: 'center', gap: 8, fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 24, fontWeight: 600, color: '#C9A24B' },
-  tagline: { color: '#93A896', fontSize: 13, fontStyle: 'italic', margin: '4px 0 20px' },
+  wrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0e100d', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", padding: 16 },
+  card: { background: '#211e1e', borderRadius: 16, padding: 32, width: '100%', maxWidth: 360, color: '#b9a5b0' },
+  wordmark: { display: 'flex', alignItems: 'center', gap: 8, fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 24, fontWeight: 600, color: '#a97e97' },
+  tagline: { color: '#939894', fontSize: 13, fontStyle: 'italic', margin: '4px 0 20px' },
   form: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontSize: 11.5, color: '#93A896', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8 },
-  input: { background: '#1E2B24', border: '1px solid rgba(243,236,221,0.14)', color: '#F3ECDD', borderRadius: 8, padding: '9px 10px', fontSize: 14, fontFamily: 'inherit' },
-  error: { color: '#E27A63', fontSize: 12.5, margin: '4px 0 0' },
-  message: { color: '#8FD6CC', fontSize: 12.5, margin: '4px 0 0' },
-  btn: { background: '#C9A24B', color: '#241B08', border: 'none', borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginTop: 14 },
-  switchBtn: { background: 'none', border: 'none', color: '#C9A24B', fontSize: 12.5, marginTop: 18, cursor: 'pointer', textDecoration: 'underline', width: '100%', textAlign: 'center' },
+  label: { fontSize: 11.5, color: '#939894', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8 },
+  input: { background: '#0e100d', border: '1px solid rgba(185,165,176,0.14)', color: '#b9a5b0', borderRadius: 8, padding: '9px 10px', fontSize: 14, fontFamily: 'inherit' },
+  error: { color: '#cf5969', fontSize: 12.5, margin: '4px 0 0' },
+  message: { color: '#e1c1e1', fontSize: 12.5, margin: '4px 0 0' },
+  btn: { background: '#a97e97', color: '#0e100d', border: 'none', borderRadius: 8, padding: '10px', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginTop: 14 },
+  switchBtn: { background: 'none', border: 'none', color: '#a97e97', fontSize: 12.5, marginTop: 18, cursor: 'pointer', textDecoration: 'underline', width: '100%', textAlign: 'center' },
 };
