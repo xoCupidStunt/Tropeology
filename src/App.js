@@ -72,6 +72,26 @@ function computeStreak(logDates) {
   return streak;
 }
 
+function computeBestStreak(logDates) {
+  const days = [...new Set(logDates)].sort();
+  if (!days.length) return 0;
+  let best = 1, current = 1;
+  for (let i = 1; i < days.length; i++) {
+    const prev = new Date(days[i - 1] + 'T00:00:00');
+    const curr = new Date(days[i] + 'T00:00:00');
+    const diff = Math.round((curr - prev) / 86400000);
+    current = diff === 1 ? current + 1 : 1;
+    if (current > best) best = current;
+  }
+  return best;
+}
+
+function currentWeekDates() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const sunday = new Date(today.getTime() - today.getDay() * 86400000);
+  return Array.from({ length: 7 }, (_, i) => new Date(sunday.getTime() + i * 86400000).toISOString().slice(0, 10));
+}
+
 function getMonthGrid(year, month) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -371,6 +391,9 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [goodreadsUrl, setGoodreadsUrl] = useState('');
+  const [fetchingGoodreads, setFetchingGoodreads] = useState(false);
+  const [goodreadsError, setGoodreadsError] = useState('');
 
   const [form, setForm] = useState(() => initial ? { tropes: [], blurb: '', ...initial } : {
     id: uid(),
@@ -408,6 +431,28 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
   const pickResult = (r) => {
     setForm(f => ({ ...f, title: r.title, author: r.author, coverUrl: r.coverUrl || '', totalPages: r.pages || f.totalPages }));
     setTab('manual');
+  };
+
+  const fetchFromGoodreads = async () => {
+    if (!goodreadsUrl.trim()) return;
+    setFetchingGoodreads(true); setGoodreadsError('');
+    try {
+      const res = await fetch(`/api/goodreads?url=${encodeURIComponent(goodreadsUrl.trim())}`);
+      const info = await res.json();
+      if (!res.ok) throw new Error(info.error || 'Lookup failed.');
+      setForm(f => ({
+        ...f,
+        title: info.title || f.title,
+        author: info.author || f.author,
+        coverUrl: info.coverUrl || f.coverUrl,
+        blurb: info.blurb || f.blurb,
+      }));
+      setTab('manual');
+    } catch (e) {
+      setGoodreadsError("Couldn't read that Goodreads page. You can search above or enter details manually instead.");
+    } finally {
+      setFetchingGoodreads(false);
+    }
   };
 
   const addSpicyNote = () => {
@@ -455,6 +500,13 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
 
         {!isEdit && tab === 'search' && (
           <div className="search-panel">
+            <label>Paste a Goodreads link</label>
+            <div className="search-input-row">
+              <input placeholder="https://www.goodreads.com/book/show/…" value={goodreadsUrl} onChange={e => setGoodreadsUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchFromGoodreads()} />
+              <button className="btn btn-brass" onClick={fetchFromGoodreads} disabled={fetchingGoodreads}>{fetchingGoodreads ? '…' : 'Fetch'}</button>
+            </div>
+            {goodreadsError && <p className="hint-error">{goodreadsError}</p>}
+            <label>Or search Open Library</label>
             <div className="search-input-row">
               <input
                 placeholder="Title or author…"
@@ -547,8 +599,8 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
                 </div>
                 {form.progressType === 'percent' ? (
                   <div className="percent-row">
-                    <input type="range" min="0" max="100" value={form.percent} onChange={e => set('percent', Number(e.target.value))} />
-                    <span className="mono">{form.percent}%</span>
+                    <input type="number" min="0" max="100" value={form.percent} onChange={e => set('percent', Number(e.target.value))} style={{ width: 80 }} />
+                    <span>%</span>
                   </div>
                 ) : (
                   <div className="pages-row">
@@ -680,9 +732,10 @@ function BookGrid({ books, onOpen, onQuickStatus, empty }) {
   return <div className="book-grid">{books.map(b => <BookCard key={b.id} book={b} onOpen={onOpen} onQuickStatus={onQuickStatus} />)}</div>;
 }
 
-function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, goToSection, onOpenRelease }) {
+function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, goToSection, onOpenRelease, onOpenStreak }) {
   const streak = useMemo(() => computeStreak(data.readingLog), [data.readingLog]);
   const loggedToday = data.readingLog.includes(todayStr());
+  const weekDates = useMemo(() => currentWeekDates(), []);
   const currentlyReading = data.books.filter(b => b.status === 'reading');
   const thisYear = new Date().getFullYear();
   const today = todayStr();
@@ -698,15 +751,29 @@ function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, go
   return (
     <div className="view-pad">
       <div className="home-hero">
-        <div className="streak-card">
-          <Flame size={30} className={streak > 0 ? 'flame-lit' : 'flame-out'} />
-          <div>
-            <div className="streak-num mono">{streak}</div>
-            <div className="streak-label">day streak</div>
+        <div className="streak-card" onClick={onOpenStreak}>
+          <div className="streak-card-top">
+            <Flame size={30} className={streak > 0 ? 'flame-lit' : 'flame-out'} />
+            <div>
+              <div className="streak-num mono">{streak}</div>
+              <div className="streak-label">day streak</div>
+            </div>
+            <button className={`btn btn-sm ${loggedToday ? 'btn-forest' : 'btn-brass'}`} onClick={(e) => { e.stopPropagation(); onLogToday(); }} disabled={loggedToday}>
+              {loggedToday ? <><Check size={13} /> Logged today</> : 'I read today'}
+            </button>
           </div>
-          <button className={`btn btn-sm ${loggedToday ? 'btn-forest' : 'btn-brass'}`} onClick={onLogToday} disabled={loggedToday}>
-            {loggedToday ? <><Check size={13} /> Logged today</> : 'I read today'}
-          </button>
+          <div className="streak-week">
+            {WEEKDAYS.map((wd, i) => {
+              const done = data.readingLog.includes(weekDates[i]);
+              const isToday = weekDates[i] === todayStr();
+              return (
+                <div key={i} className={`streak-week-day ${done ? 'done' : ''} ${isToday ? 'today' : ''}`}>
+                  <span className="streak-week-label">{wd}</span>
+                  {done ? <Check size={12} /> : <span className="streak-week-dot" />}
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div className="stat-card">
           <div className="stat-num mono">{finishedThisYear}</div>
@@ -765,6 +832,74 @@ function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, go
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function StreakDetailModal({ data, onClose, onSetManualStreak }) {
+  const streak = computeStreak(data.readingLog);
+  const best = computeBestStreak(data.readingLog);
+  const [cursor, setCursor] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
+  const [manualValue, setManualValue] = useState(String(streak));
+  const cells = useMemo(() => getMonthGrid(cursor.year, cursor.month), [cursor]);
+
+  const shift = (delta) => setCursor(c => {
+    let m = c.month + delta, y = c.year;
+    if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
+    return { year: y, month: m };
+  });
+
+  const apply = () => {
+    const n = parseInt(manualValue, 10);
+    if (!isNaN(n) && n > 0) onSetManualStreak(n);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header"><h2>Reading streak</h2><button className="icon-btn" onClick={onClose}><X size={18} /></button></div>
+        <div className="form-body">
+          <div className="streak-stats-row">
+            <div className="streak-stat">
+              <div className="stat-num mono">{streak}</div>
+              <div className="stat-label">current streak</div>
+            </div>
+            <div className="streak-stat">
+              <div className="stat-num mono">{best}</div>
+              <div className="stat-label">best streak</div>
+            </div>
+          </div>
+
+          <div className="cal-nav" style={{ justifyContent: 'center' }}>
+            <button className="icon-btn" onClick={() => shift(-1)}><ChevronLeft size={16} /></button>
+            <span className="mono">{MONTH_NAMES[cursor.month]} {cursor.year}</span>
+            <button className="icon-btn" onClick={() => shift(1)}><ChevronRight size={16} /></button>
+          </div>
+          <div className="cal-grid-header">
+            {WEEKDAYS.map((w, i) => <span key={i}>{w}</span>)}
+          </div>
+          <div className="cal-grid">
+            {cells.map((day, i) => {
+              if (!day) return <div key={i} className="streak-cal-cell empty" />;
+              const dk = dateKey(cursor.year, cursor.month, day);
+              const done = data.readingLog.includes(dk);
+              return (
+                <div key={i} className={`streak-cal-cell ${done ? 'done' : ''}`}>
+                  <span className="cal-day-num mono">{day}</span>
+                  {done && <Check size={14} className="streak-cal-check" />}
+                </div>
+              );
+            })}
+          </div>
+
+          <label>Set current streak manually</label>
+          <p className="form-hint">Tracking your reading somewhere else too? Enter your real current streak to back-fill it here — this only adds days, it won't shrink an existing streak.</p>
+          <div className="search-input-row">
+            <input type="number" min="0" value={manualValue} onChange={e => setManualValue(e.target.value)} style={{ width: 100 }} />
+            <button className="btn btn-brass" onClick={apply}>Save</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -926,7 +1061,7 @@ function CalendarView({ data, bg, setBg }) {
                 <div key={i} className="cal-cell">
                   <span className="cal-day-num mono">{day}</span>
                   <div className="cal-cell-covers">
-                    {finished.slice(0, 3).map(b => <BookCover key={b.id} book={b} w={20} h={28} radius={3} />)}
+                    {finished.slice(0, 3).map(b => <BookCover key={b.id} book={b} w={32} h={46} radius={4} />)}
                     {finished.length > 3 && <span className="mono cal-more">+{finished.length - 3}</span>}
                   </div>
                 </div>
@@ -1463,6 +1598,22 @@ function ReadingTracker({ session }) {
     });
   };
   const openReleaseDetail = (release) => setModal({ type: 'releaseDetail', payload: release });
+  const openStreakDetail = () => setModal({ type: 'streak' });
+  const setManualStreak = (n) => {
+    if (!Number.isFinite(n) || n <= 0) return;
+    setData(d => {
+      const dates = new Set(d.readingLog);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let anchor = today;
+      if (!dates.has(anchor.toISOString().slice(0, 10))) {
+        anchor = new Date(anchor.getTime() - 86400000);
+      }
+      for (let i = 0; i < n; i++) {
+        dates.add(new Date(anchor.getTime() - i * 86400000).toISOString().slice(0, 10));
+      }
+      return { ...d, readingLog: Array.from(dates) };
+    });
+  };
 
   const saveGoal = (goal) => setData(d => ({ ...d, goals: d.goals.some(g => g.id === goal.id) ? d.goals.map(g => g.id === goal.id ? goal : g) : [...d.goals, goal] }));
   const deleteGoal = (id) => setData(d => ({ ...d, goals: d.goals.filter(g => g.id !== id) }));
@@ -1525,7 +1676,7 @@ function ReadingTracker({ session }) {
       <SpineNav active={section} onSelect={setSection} />
 
       <main className="app-main">
-        {section === 'home' && <HomeView data={data} releases={releases} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} onOpenRelease={openReleaseDetail} />}
+        {section === 'home' && <HomeView data={data} releases={releases} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} onOpenRelease={openReleaseDetail} onOpenStreak={openStreakDetail} />}
         {section === 'shelf' && <ShelfView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} onOpenWishlist={openEditWishlist} onAddWishlist={openAddWishlist} onPurchased={purchaseWishlistItem} />}
         {section === 'tbr' && <StatusListView title="TBR" icon={BookMarked} status="tbr" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Add the books you're excited to get to." />}
         {section === 'reading' && <StatusListView title="Currently reading" icon={BookOpen} status="reading" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Start a book from your TBR shelf." />}
@@ -1557,6 +1708,7 @@ function ReadingTracker({ session }) {
         />
       )}
       {modal?.type === 'wishlist' && <WishlistFormModal initial={modal.payload} onSave={saveWishlistItem} onDelete={deleteWishlistItem} onClose={() => setModal(null)} />}
+      {modal?.type === 'streak' && <StreakDetailModal data={data} onClose={() => setModal(null)} onSetManualStreak={setManualStreak} />}
 
       <style>{STYLES}</style>
     </div>
@@ -1673,12 +1825,26 @@ const STYLES = `
 
 .home-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 26px; }
 .streak-card, .stat-card { background: var(--cloth); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.streak-card { flex-direction: row; align-items: center; }
+.streak-card { cursor: pointer; }
+.streak-card-top { display: flex; align-items: center; gap: 8px; }
 .flame-lit { color: var(--brass); }
 .flame-out { color: var(--ash); opacity: 0.5; }
 .streak-num { font-size: 28px; font-weight: 700; line-height: 1; }
 .streak-label { color: var(--ash); font-size: 12px; }
 .streak-card .btn { margin-left: auto; }
+.streak-week { display: flex; justify-content: space-between; gap: 4px; padding-top: 6px; border-top: 1px solid rgba(185,165,176,0.12); }
+.streak-week-day { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ash); }
+.streak-week-label { font-size: 10px; font-weight: 700; }
+.streak-week-day.done { color: var(--brass); }
+.streak-week-day.today .streak-week-label { text-decoration: underline; }
+.streak-week-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(185,165,176,0.25); }
+.streak-stats-row { display: flex; gap: 16px; }
+.streak-stat { flex: 1; background: var(--endsheet); border-radius: 10px; padding: 12px; text-align: center; }
+.streak-cal-cell { min-height: 40px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.streak-cal-cell.empty { border: none; }
+.streak-cal-cell.done { background: rgba(169,126,151,0.18); border-color: var(--brass); }
+.streak-cal-check { color: var(--brass); }
+.form-hint { color: var(--ash); font-size: 12px; line-height: 1.4; margin: 2px 0 6px; }
 .stat-num { font-size: 26px; font-weight: 700; }
 .stat-label { color: var(--ash); font-size: 12px; margin-top: -6px; }
 .stat-sub { font-size: 11.5px; color: var(--ash); }
@@ -1756,7 +1922,6 @@ const STYLES = `
 .checkbox-row { display: flex; align-items: center; gap: 6px; text-transform: none; font-size: 13px; color: var(--foxing); font-weight: 500; }
 .progress-editor, .spicy-editor, .trope-editor, .finish-panel { background: var(--endsheet); border-radius: 10px; padding: 12px; }
 .percent-row { display: flex; align-items: center; gap: 10px; }
-.percent-row input[type=range] { flex: 1; }
 .pages-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .spicy-add-row { display: flex; gap: 6px; margin-top: 8px; }
 .spicy-notes-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -1778,11 +1943,11 @@ const STYLES = `
 .cal-panel { border-radius: 12px; padding: 16px; }
 .cal-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--ash); margin-bottom: 6px; font-weight: 700; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-cell { min-height: 64px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.cal-cell { min-height: 100px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
 .cal-cell.empty { border: none; }
 .cal-day-num { font-size: 11px; color: rgba(185,165,176,0.75); }
-.cal-cell-covers { display: flex; gap: 2px; flex-wrap: wrap; margin-top: auto; }
-.cal-more { font-size: 10px; color: var(--brass); align-self: center; }
+.cal-cell-covers { display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto; }
+.cal-more { font-size: 11px; color: var(--brass); align-self: center; }
 .cal-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; margin-top: 16px; }
 .cal-controls label { display: block; font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
 .cal-controls input[type=range] { width: 100%; }
