@@ -462,7 +462,7 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
       }));
       setTab('manual');
     } catch (e) {
-      setGoodreadsError("Couldn't read that Goodreads page. You can search above or enter details manually instead.");
+      setGoodreadsError(e.message || "Couldn't read that Goodreads page. You can search above or enter details manually instead.");
     } finally {
       setFetchingGoodreads(false);
     }
@@ -1226,7 +1226,7 @@ function ReleaseFormModal({ onSave, onClose }) {
       }));
       if (!info.releaseDate) setGoodreadsError('Got the book details, but no release date — add it manually below.');
     } catch (e) {
-      setGoodreadsError("Couldn't read that Goodreads page. You can search above or enter details manually instead.");
+      setGoodreadsError(e.message || "Couldn't read that Goodreads page. You can search above or enter details manually instead.");
     } finally {
       setFetchingGoodreads(false);
     }
