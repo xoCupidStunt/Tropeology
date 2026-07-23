@@ -93,10 +93,13 @@ create table if not exists public.releases (
   title        text not null,
   author       text,
   cover_url    text,
+  blurb        text,
   format       text not null default 'physical',
   release_date date not null,
   created_at   timestamptz not null default now()
 );
+
+alter table public.releases add column if not exists blurb text;
 
 alter table public.releases enable row level security;
 

@@ -95,9 +95,11 @@ module.exports = async (req, res) => {
 
     const ogTitle = html.match(/<meta property="og:title" content="([^"]*)"/i)?.[1];
     const ogImage = html.match(/<meta property="og:image" content="([^"]*)"/i)?.[1];
+    const ogDescription = html.match(/<meta property="og:description" content="([^"]*)"/i)?.[1];
 
     let author = null;
     let releaseDate = null;
+    let blurb = null;
     const ldJsonMatches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
     for (const m of ldJsonMatches) {
       try {
@@ -111,6 +113,7 @@ module.exports = async (req, res) => {
               author = author || a?.name || null;
             }
             if (obj.datePublished) releaseDate = releaseDate || obj.datePublished;
+            if (obj.description) blurb = blurb || obj.description;
           }
         }
       } catch (e) {
@@ -135,6 +138,7 @@ module.exports = async (req, res) => {
       title: decodeHtmlEntities(ogTitle) || null,
       author: decodeHtmlEntities(author) || null,
       coverUrl: ogImage || null,
+      blurb: decodeHtmlEntities(ogDescription || blurb) || null,
       releaseDate: normalizeDate(releaseDate),
     });
   } catch (e) {

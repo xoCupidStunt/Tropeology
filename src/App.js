@@ -372,7 +372,7 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
-  const [form, setForm] = useState(() => initial ? { tropes: [], ...initial } : {
+  const [form, setForm] = useState(() => initial ? { tropes: [], blurb: '', ...initial } : {
     id: uid(),
     title: '', author: '', coverUrl: '',
     formats: [], owned: false,
@@ -381,6 +381,7 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
     currentPage: 0, totalPages: 0, percent: 0,
     isSpicy: false, spicyNotes: [],
     tropes: [],
+    blurb: '',
     starRating: 0, spiceRating: 0, review: '',
     dateAdded: todayStr(), dateStarted: null, dateFinished: null,
     notes: '',
@@ -491,6 +492,9 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
                 <input value={form.coverUrl} onChange={e => set('coverUrl', e.target.value)} placeholder="https://…" />
               </div>
             </div>
+
+            <label>Blurb</label>
+            <textarea value={form.blurb} onChange={e => set('blurb', e.target.value)} placeholder="What's this book about?" rows={3} />
 
             <div className="form-grid-2">
               <div>
@@ -622,6 +626,9 @@ function BookCard({ book, onOpen, onQuickStatus }) {
       <div className="book-card-info">
         <div className="book-card-title">{book.title}</div>
         <div className="book-card-author">{book.author}</div>
+        {book.blurb && (
+          <div className="book-card-blurb">{book.blurb.length > 110 ? book.blurb.slice(0, 110) + '…' : book.blurb}</div>
+        )}
         <div className="badge-row">
           {book.formats.includes('physical') && <Badge tone="teal"><BookOpen size={11} /> Physical</Badge>}
           {book.formats.includes('audio') && <Badge tone="teal"><Headphones size={11} /> Audio</Badge>}
@@ -673,7 +680,7 @@ function BookGrid({ books, onOpen, onQuickStatus, empty }) {
   return <div className="book-grid">{books.map(b => <BookCard key={b.id} book={b} onOpen={onOpen} onQuickStatus={onQuickStatus} />)}</div>;
 }
 
-function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, goToSection }) {
+function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, goToSection, onOpenRelease }) {
   const streak = useMemo(() => computeStreak(data.readingLog), [data.readingLog]);
   const loggedToday = data.readingLog.includes(todayStr());
   const currentlyReading = data.books.filter(b => b.status === 'reading');
@@ -748,7 +755,7 @@ function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, go
             {upcomingSoon.map(r => {
               const d = daysUntil(r.releaseDate);
               return (
-                <div key={r.id} className="release-mini-card" onClick={() => goToSection('releases')}>
+                <div key={r.id} className="release-mini-card" onClick={() => onOpenRelease(r)}>
                   {r.coverUrl ? <img src={r.coverUrl} alt="" /> : <FallbackCover title={r.title} w={64} h={94} radius={5} />}
                   <div className="release-mini-title">{r.title}</div>
                   <div className="mono release-mini-days">{d === 0 ? 'Today' : `in ${d}d`}</div>
@@ -1023,7 +1030,7 @@ function ReleaseFormModal({ onSave, onClose }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [form, setForm] = useState({ id: uid(), title: '', author: '', coverUrl: '', format: 'physical', releaseDate: todayStr() });
+  const [form, setForm] = useState({ id: uid(), title: '', author: '', coverUrl: '', blurb: '', format: 'physical', releaseDate: todayStr() });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [goodreadsUrl, setGoodreadsUrl] = useState('');
@@ -1050,6 +1057,7 @@ function ReleaseFormModal({ onSave, onClose }) {
         title: info.title || f.title,
         author: info.author || f.author,
         coverUrl: info.coverUrl || f.coverUrl,
+        blurb: info.blurb || f.blurb,
         releaseDate: info.releaseDate || f.releaseDate,
       }));
       if (!info.releaseDate) setGoodreadsError('Got the book details, but no release date — add it manually below.');
@@ -1120,6 +1128,8 @@ function ReleaseFormModal({ onSave, onClose }) {
               {uploadError && <p className="hint-error">{uploadError}</p>}
             </div>
           </div>
+          <label>Blurb</label>
+          <textarea value={form.blurb} onChange={e => set('blurb', e.target.value)} placeholder="What's this book about?" rows={3} />
           <label>Format</label>
           <div className="chip-row">
             <button className={`chip ${form.format === 'physical' ? 'chip-on' : ''}`} onClick={() => set('format', 'physical')}><BookOpen size={13} /> Book</button>
@@ -1138,7 +1148,38 @@ function ReleaseFormModal({ onSave, onClose }) {
   );
 }
 
-function ReleasesView({ releases, isOwner, onAdd, onRemove, onConvertToTBR }) {
+function ReleaseDetailModal({ release, isOwner, onClose, onConvertToTBR, onAddToWishlist, onRemove }) {
+  const d = daysUntil(release.releaseDate);
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header"><h2>{release.title}</h2><button className="icon-btn" onClick={onClose}><X size={18} /></button></div>
+        <div className="form-body">
+          <div className="form-row-cover">
+            {release.coverUrl ? <img src={release.coverUrl} className="form-cover-preview" alt="" /> : <FallbackCover title={release.title} w={64} h={96} radius={6} />}
+            <div className="form-cover-fields">
+              <div className="book-card-author">{release.author}</div>
+              <div className="badge-row" style={{ marginTop: 4 }}>
+                <Badge tone="teal">{release.format === 'audio' ? <><Headphones size={11} /> Audiobook</> : <><BookOpen size={11} /> Book</>}</Badge>
+                {d < 0 ? <Badge tone="forest">Released</Badge> : d === 0 ? <Badge tone="chili">Today!</Badge> : <Badge tone="muted">in {d} day{d === 1 ? '' : 's'}</Badge>}
+              </div>
+              <div className="mono small ash" style={{ marginTop: 4 }}>{release.releaseDate}</div>
+            </div>
+          </div>
+          <p className={`release-detail-blurb${release.blurb ? '' : ' ash'}`}>{release.blurb || 'No blurb available for this one yet.'}</p>
+          <div className="modal-actions">
+            {isOwner && <button className="btn btn-danger" onClick={() => { onRemove(release.id); onClose(); }}><Trash2 size={14} /> Remove</button>}
+            <div style={{ flex: 1 }} />
+            <button className="btn btn-sm" onClick={() => onAddToWishlist(release)}><ShoppingCart size={13} /> Add to Wishlist</button>
+            {d <= 0 && <button className="btn btn-brass" onClick={() => onConvertToTBR(release)}>Add to TBR</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReleasesView({ releases, isOwner, onAdd, onRemove, onConvertToTBR, onAddToWishlist, onOpenRelease }) {
   const sorted = [...releases].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate));
   return (
     <div className="view-pad">
@@ -1151,7 +1192,7 @@ function ReleasesView({ releases, isOwner, onAdd, onRemove, onConvertToTBR }) {
         {sorted.map(r => {
           const d = daysUntil(r.releaseDate);
           return (
-            <div key={r.id} className="release-row">
+            <div key={r.id} className="release-row" onClick={() => onOpenRelease(r)} style={{ cursor: 'pointer' }}>
               {r.coverUrl ? <img src={r.coverUrl} className="release-cover" alt="" /> : <FallbackCover title={r.title} w={48} h={70} radius={4} />}
               <div className="release-info">
                 <div className="book-card-title">{r.title}</div>
@@ -1163,8 +1204,9 @@ function ReleasesView({ releases, isOwner, onAdd, onRemove, onConvertToTBR }) {
                 <span className="mono small ash">{r.releaseDate}</span>
               </div>
               <div className="release-actions">
-                {d <= 0 && <button className="btn btn-sm" onClick={() => onConvertToTBR(r)}>Add to TBR</button>}
-                {isOwner && <button className="icon-btn" onClick={() => onRemove(r.id)}><Trash2 size={14} /></button>}
+                <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); onAddToWishlist(r); }}><ShoppingCart size={12} /> Wishlist</button>
+                {d <= 0 && <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); onConvertToTBR(r); }}>Add to TBR</button>}
+                {isOwner && <button className="icon-btn" onClick={(e) => { e.stopPropagation(); onRemove(r.id); }}><Trash2 size={14} /></button>}
               </div>
             </div>
           );
@@ -1337,7 +1379,7 @@ function ReadingTracker({ session }) {
     (async () => {
       const { data: rows, error } = await supabase.from('releases').select('*').order('release_date', { ascending: true });
       if (error) { console.error('Failed to load releases:', error); return; }
-      setReleases((rows || []).map(r => ({ id: r.id, title: r.title, author: r.author, coverUrl: r.cover_url, format: r.format, releaseDate: r.release_date })));
+      setReleases((rows || []).map(r => ({ id: r.id, title: r.title, author: r.author, coverUrl: r.cover_url, blurb: r.blurb, format: r.format, releaseDate: r.release_date })));
     })();
   }, []);
 
@@ -1394,10 +1436,10 @@ function ReadingTracker({ session }) {
   const saveRelease = async (release) => {
     const { data: row, error } = await supabase.from('releases').insert({
       title: release.title, author: release.author, cover_url: release.coverUrl || null,
-      format: release.format, release_date: release.releaseDate,
+      blurb: release.blurb || null, format: release.format, release_date: release.releaseDate,
     }).select().single();
     if (error) { console.error('Failed to add release:', error); return; }
-    setReleases(r => [...r, { id: row.id, title: row.title, author: row.author, coverUrl: row.cover_url, format: row.format, releaseDate: row.release_date }]);
+    setReleases(r => [...r, { id: row.id, title: row.title, author: row.author, coverUrl: row.cover_url, blurb: row.blurb, format: row.format, releaseDate: row.release_date }]);
     setModal(null);
   };
   const removeRelease = async (id) => {
@@ -1410,9 +1452,17 @@ function ReadingTracker({ session }) {
       id: uid(), title: release.title, author: release.author, coverUrl: release.coverUrl || '',
       formats: [], owned: false, status: 'tbr', progressType: data.prefs.defaultProgressType,
       currentPage: 0, totalPages: 0, percent: 0, isSpicy: false, spicyNotes: [], tropes: [],
+      blurb: release.blurb || '',
       starRating: 0, spiceRating: 0, dateAdded: todayStr(), dateStarted: null, dateFinished: null, notes: '',
     });
   };
+  const addReleaseToWishlist = (release) => {
+    saveWishlistItem({
+      id: uid(), title: release.title, author: release.author, coverUrl: release.coverUrl || '',
+      formatsWanted: release.format ? [release.format] : [], notes: '', dateAdded: todayStr(),
+    });
+  };
+  const openReleaseDetail = (release) => setModal({ type: 'releaseDetail', payload: release });
 
   const saveGoal = (goal) => setData(d => ({ ...d, goals: d.goals.some(g => g.id === goal.id) ? d.goals.map(g => g.id === goal.id ? goal : g) : [...d.goals, goal] }));
   const deleteGoal = (id) => setData(d => ({ ...d, goals: d.goals.filter(g => g.id !== id) }));
@@ -1438,7 +1488,7 @@ function ReadingTracker({ session }) {
         id: uid(), title: item.title, author: item.author, coverUrl: item.coverUrl || '',
         formats: item.formatsWanted.length ? item.formatsWanted : ['physical'], owned: true, status: 'tbr',
         progressType: d.prefs.defaultProgressType, currentPage: 0, totalPages: 0, percent: 0,
-        isSpicy: false, spicyNotes: [], tropes: [], starRating: 0, spiceRating: 0, review: '',
+        isSpicy: false, spicyNotes: [], tropes: [], blurb: '', starRating: 0, spiceRating: 0, review: '',
         dateAdded: todayStr(), dateStarted: null, dateFinished: null, notes: item.notes || '',
       }],
     }));
@@ -1475,14 +1525,14 @@ function ReadingTracker({ session }) {
       <SpineNav active={section} onSelect={setSection} />
 
       <main className="app-main">
-        {section === 'home' && <HomeView data={data} releases={releases} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} />}
+        {section === 'home' && <HomeView data={data} releases={releases} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} onOpenRelease={openReleaseDetail} />}
         {section === 'shelf' && <ShelfView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} onOpenWishlist={openEditWishlist} onAddWishlist={openAddWishlist} onPurchased={purchaseWishlistItem} />}
         {section === 'tbr' && <StatusListView title="TBR" icon={BookMarked} status="tbr" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Add the books you're excited to get to." />}
         {section === 'reading' && <StatusListView title="Currently reading" icon={BookOpen} status="reading" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Start a book from your TBR shelf." />}
         {section === 'finished' && <StatusListView title="Finished" icon={Check} status="read" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Books you've completed will show up here, with your ratings and reviews." />}
         {section === 'calendar' && <CalendarView data={data} bg={bg} setBg={setBg} />}
         {section === 'goals' && <GoalsView data={data} onSave={saveGoal} onDelete={deleteGoal} onAdd={addGoal} />}
-        {section === 'releases' && <ReleasesView releases={releases} isOwner={isOwner} onAdd={() => setModal({ type: 'release' })} onRemove={removeRelease} onConvertToTBR={convertToTBR} />}
+        {section === 'releases' && <ReleasesView releases={releases} isOwner={isOwner} onAdd={() => setModal({ type: 'release' })} onRemove={removeRelease} onConvertToTBR={convertToTBR} onAddToWishlist={addReleaseToWishlist} onOpenRelease={openReleaseDetail} />}
       </main>
 
       {modal?.type === 'book' && (
@@ -1496,6 +1546,16 @@ function ReadingTracker({ session }) {
         />
       )}
       {modal?.type === 'release' && <ReleaseFormModal onSave={saveRelease} onClose={() => setModal(null)} />}
+      {modal?.type === 'releaseDetail' && (
+        <ReleaseDetailModal
+          release={modal.payload}
+          isOwner={isOwner}
+          onClose={() => setModal(null)}
+          onConvertToTBR={convertToTBR}
+          onAddToWishlist={addReleaseToWishlist}
+          onRemove={removeRelease}
+        />
+      )}
       {modal?.type === 'wishlist' && <WishlistFormModal initial={modal.payload} onSave={saveWishlistItem} onDelete={deleteWishlistItem} onClose={() => setModal(null)} />}
 
       <style>{STYLES}</style>
@@ -1631,6 +1691,7 @@ const STYLES = `
 .book-card-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
 .book-card-title { font-weight: 700; font-size: 14px; line-height: 1.25; }
 .book-card-author { color: var(--ash); font-size: 12.5px; }
+.book-card-blurb { color: var(--ash); font-size: 11.5px; line-height: 1.35; margin: 1px 0; }
 .badge-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
 .badge { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; }
 .badge-teal { background: rgba(118,86,118,0.35); color: #e1c1e1; }
@@ -1745,6 +1806,7 @@ const STYLES = `
 .release-info { flex: 1; min-width: 0; }
 .release-countdown { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .release-actions { display: flex; align-items: center; gap: 6px; }
+.release-detail-blurb { font-size: 13px; line-height: 1.5; color: var(--foxing); margin: 4px 0 0; }
 
 @media (max-width: 640px) {
   .form-grid-2 { grid-template-columns: 1fr; }
