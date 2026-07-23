@@ -13,21 +13,28 @@ import Auth from './Auth';
 /* ---------------------------------------------------------------- */
 
 const SECTIONS = [
-  { id: 'home',      label: 'Home',       color: '#a97e97', icon: Home },
-  { id: 'shelf',     label: 'My Shelf',   color: '#765676', icon: Library },
-  { id: 'wishlist',  label: 'Wishlist',   color: '#7e5544', icon: ShoppingCart },
-  { id: 'tbr',       label: 'TBR',        color: '#815889', icon: BookMarked },
-  { id: 'reading',   label: 'Reading',    color: '#762d37', icon: BookOpen },
-  { id: 'finished',  label: 'Finished',   color: '#6f3e4f', icon: Check },
-  { id: 'calendar',  label: 'Calendar',   color: '#5d4659', icon: CalendarDays },
-  { id: 'goals',     label: 'Goals',      color: '#945f57', icon: Target },
-  { id: 'releases',  label: 'Releases',   color: '#682b33', icon: Clock },
+  { id: 'home',      label: 'Home',       color: '#af839c', icon: Home },
+  { id: 'shelf',     label: 'My Shelf',   color: '#875a87', icon: Library },
+  { id: 'reading',   label: 'Reading',    color: '#802d38', icon: BookOpen },
+  { id: 'tbr',       label: 'TBR',        color: '#9e618f', icon: BookMarked },
+  { id: 'finished',  label: 'Finished',   color: '#695c70', icon: Check },
+  { id: 'calendar',  label: 'Calendar',   color: '#6b5c7a', icon: CalendarDays },
+  { id: 'goals',     label: 'Goals',      color: '#966254', icon: Target },
+  { id: 'releases',  label: 'Releases',   color: '#804251', icon: Clock },
 ];
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS = ['S','M','T','W','T','F','S'];
 
-const COVER_HUES = [ '#765676', '#815889', '#762d37', '#6f3e4f', '#5d4659', '#945f57', '#682b33', '#a97e97' ];
+const COVER_HUES = [ '#af839c', '#875a87', '#802d38', '#9e618f', '#695c70', '#6b5c7a', '#966254', '#804251' ];
+
+const TROPES = [
+  'Enemies to Lovers', 'Friends to Lovers', 'Second Chance', 'Fake Dating', 'Marriage of Convenience',
+  'Forced Proximity', 'Grumpy x Sunshine', 'Slow Burn', 'Insta-Love', 'Love Triangle',
+  'Found Family', 'Chosen One', 'Age Gap', 'Secret Identity', 'Royalty',
+  'Small Town', 'Workplace Romance', 'Single Parent', 'Rivals', 'Reverse Harem',
+  'Time Travel', 'Redemption Arc', 'Morally Grey', 'Only One Bed',
+];
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -363,7 +370,7 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
 
-  const [form, setForm] = useState(() => initial ? { ...initial } : {
+  const [form, setForm] = useState(() => initial ? { tropes: [], ...initial } : {
     id: uid(),
     title: '', author: '', coverUrl: '',
     formats: [], owned: false,
@@ -371,11 +378,13 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
     progressType: defaultProgressType || 'percent',
     currentPage: 0, totalPages: 0, percent: 0,
     isSpicy: false, spicyNotes: [],
+    tropes: [],
     starRating: 0, spiceRating: 0, review: '',
     dateAdded: todayStr(), dateStarted: null, dateFinished: null,
     notes: '',
   });
   const [spicyDraft, setSpicyDraft] = useState('');
+  const [tropeDraft, setTropeDraft] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const toggleFormat = (fmt) => setForm(f => ({ ...f, formats: f.formats.includes(fmt) ? f.formats.filter(x => x !== fmt) : [...f.formats, fmt] }));
@@ -404,6 +413,15 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
     setSpicyDraft('');
   };
   const removeSpicyNote = (id) => setForm(f => ({ ...f, spicyNotes: f.spicyNotes.filter(n => n.id !== id) }));
+
+  const toggleTrope = (t) => setForm(f => ({ ...f, tropes: f.tropes.includes(t) ? f.tropes.filter(x => x !== t) : [...f.tropes, t] }));
+  const addCustomTrope = () => {
+    const t = tropeDraft.trim();
+    if (!t || form.tropes.includes(t)) return;
+    setForm(f => ({ ...f, tropes: [...f.tropes, t] }));
+    setTropeDraft('');
+  };
+  const removeTrope = (t) => setForm(f => ({ ...f, tropes: f.tropes.filter(x => x !== t) }));
 
   const handleStatusChange = (status) => {
     setForm(f => {
@@ -492,6 +510,26 @@ function BookFormModal({ initial, defaultStatus, defaultProgressType, onSave, on
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="trope-editor">
+              <label>Tropes</label>
+              <div className="chip-row">
+                {TROPES.map(t => (
+                  <button key={t} className={`chip ${form.tropes.includes(t) ? 'chip-on' : ''}`} onClick={() => toggleTrope(t)}>{t}</button>
+                ))}
+              </div>
+              <div className="spicy-add-row" style={{ marginTop: 8 }}>
+                <input placeholder="Add a custom trope…" value={tropeDraft} onChange={e => setTropeDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomTrope())} />
+                <button className="btn btn-sm" onClick={addCustomTrope}>Add</button>
+              </div>
+              {form.tropes.filter(t => !TROPES.includes(t)).length > 0 && (
+                <div className="spicy-notes-list">
+                  {form.tropes.filter(t => !TROPES.includes(t)).map(t => (
+                    <span key={t} className="spicy-note trope-note">{t} <X size={11} onClick={() => removeTrope(t)} /></span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {form.status === 'reading' && (
@@ -588,6 +626,12 @@ function BookCard({ book, onOpen, onQuickStatus }) {
           {book.formats.includes('ebook') && <Badge tone="teal"><Tablet size={11} /> E-book</Badge>}
           {book.isSpicy && <Badge tone="chili">🌶️ Spicy</Badge>}
         </div>
+        {book.tropes && book.tropes.length > 0 && (
+          <div className="badge-row">
+            {book.tropes.slice(0, 3).map(t => <Badge key={t} tone="plum">{t}</Badge>)}
+            {book.tropes.length > 3 && <Badge tone="muted">+{book.tropes.length - 3}</Badge>}
+          </div>
+        )}
         {book.status === 'reading' && (
           <div className="card-progress">
             <ProgressBar pct={pct} tone="chili" />
@@ -716,23 +760,69 @@ function HomeView({ data, onOpen, onQuickStatus, onLogToday, onAdd, goToSection 
   );
 }
 
-function ShelfView({ data, onOpen, onQuickStatus, onAdd }) {
+function ShelfView({ data, onOpen, onQuickStatus, onAdd, onOpenWishlist, onAddWishlist, onPurchased }) {
+  const [selectedTropes, setSelectedTropes] = useState([]);
   const owned = data.books.filter(b => b.owned);
-  const physical = owned.filter(b => b.formats.includes('physical'));
-  const audio = owned.filter(b => b.formats.includes('audio'));
-  const ebook = owned.filter(b => b.formats.includes('ebook'));
+  const availableTropes = useMemo(() => Array.from(new Set(owned.flatMap(b => b.tropes || []))).sort(), [owned]);
+  const toggleTropeFilter = (t) => setSelectedTropes(s => s.includes(t) ? s.filter(x => x !== t) : [...s, t]);
+  const matchesTropes = (b) => !selectedTropes.length || (b.tropes || []).some(t => selectedTropes.includes(t));
+  const filteredOwned = owned.filter(matchesTropes);
+  const physical = filteredOwned.filter(b => b.formats.includes('physical'));
+  const audio = filteredOwned.filter(b => b.formats.includes('audio'));
+  const ebook = filteredOwned.filter(b => b.formats.includes('ebook'));
+  const wishlist = data.wishlist;
   return (
     <div className="view-pad">
       <div className="section-heading-row">
-        <h2>My Shelf</h2>
+        <h2>Books I Own</h2>
         <button className="btn btn-sm btn-brass" onClick={onAdd}><Plus size={13} /> Add a book</button>
       </div>
+      {availableTropes.length > 0 && (
+        <div className="trope-filter-bar">
+          <label>Filter by trope</label>
+          <div className="chip-row">
+            {availableTropes.map(t => (
+              <button key={t} className={`chip ${selectedTropes.includes(t) ? 'chip-on' : ''}`} onClick={() => toggleTropeFilter(t)}>{t}</button>
+            ))}
+            {selectedTropes.length > 0 && (
+              <button className="chip" onClick={() => setSelectedTropes([])}><X size={12} /> Clear</button>
+            )}
+          </div>
+        </div>
+      )}
       <h3 className="subheading"><BookOpen size={15} /> Physical ({physical.length})</h3>
       <BookGrid books={physical} onOpen={onOpen} onQuickStatus={onQuickStatus} empty={<EmptyState icon={BookOpen} title="No physical books yet" body="Add the books sitting on your shelf." />} />
       <h3 className="subheading"><Headphones size={15} /> Audiobooks ({audio.length})</h3>
       <BookGrid books={audio} onOpen={onOpen} onQuickStatus={onQuickStatus} empty={<EmptyState icon={Headphones} title="No audiobooks yet" body="Add the ones in your library." />} />
       <h3 className="subheading"><Tablet size={15} /> E-books ({ebook.length})</h3>
       <BookGrid books={ebook} onOpen={onOpen} onQuickStatus={onQuickStatus} empty={<EmptyState icon={Tablet} title="No e-books yet" body="Add the ones in your e-reader library." />} />
+
+      <div className="section-heading-row" style={{ marginTop: 26 }}>
+        <h3 className="subheading" style={{ margin: 0 }}><ShoppingCart size={15} /> Wishlist ({wishlist.length})</h3>
+        <button className="btn btn-sm" onClick={onAddWishlist}><Plus size={13} /> Add to wishlist</button>
+      </div>
+      {!wishlist.length && (
+        <EmptyState icon={ShoppingCart} title="Wishlist is empty" body="Add books you're hoping to pick up, in whatever format you'd want them." />
+      )}
+      <div className="release-list">
+        {wishlist.map(item => (
+          <div key={item.id} className="release-row">
+            {item.coverUrl ? <img src={item.coverUrl} className="release-cover" alt="" /> : <FallbackCover title={item.title} w={48} h={70} radius={4} />}
+            <div className="release-info" onClick={() => onOpenWishlist(item)} style={{ cursor: 'pointer' }}>
+              <div className="book-card-title">{item.title}</div>
+              <div className="book-card-author">{item.author}</div>
+              <div className="badge-row">
+                {item.formatsWanted.includes('physical') && <Badge tone="teal"><BookOpen size={11} /> Physical</Badge>}
+                {item.formatsWanted.includes('audio') && <Badge tone="teal"><Headphones size={11} /> Audio</Badge>}
+                {item.formatsWanted.includes('ebook') && <Badge tone="teal"><Tablet size={11} /> E-book</Badge>}
+              </div>
+            </div>
+            <div className="release-actions">
+              <button className="btn btn-sm btn-forest" onClick={() => onPurchased(item)}>Got it!</button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1084,40 +1174,6 @@ function WishlistFormModal({ initial, onSave, onDelete, onClose }) {
   );
 }
 
-function WishlistView({ data, onOpen, onAdd, onPurchased }) {
-  const items = data.wishlist;
-  return (
-    <div className="view-pad">
-      <div className="section-heading-row">
-        <h2>Wishlist ({items.length})</h2>
-        <button className="btn btn-sm btn-brass" onClick={onAdd}><Plus size={13} /> Add to wishlist</button>
-      </div>
-      {!items.length && (
-        <EmptyState icon={ShoppingCart} title="Wishlist is empty" body="Add books you're hoping to pick up, in whatever format you'd want them." action={<button className="btn btn-brass" onClick={onAdd}>Add to wishlist</button>} />
-      )}
-      <div className="release-list">
-        {items.map(item => (
-          <div key={item.id} className="release-row">
-            {item.coverUrl ? <img src={item.coverUrl} className="release-cover" alt="" /> : <FallbackCover title={item.title} w={48} h={70} radius={4} />}
-            <div className="release-info" onClick={() => onOpen(item)} style={{ cursor: 'pointer' }}>
-              <div className="book-card-title">{item.title}</div>
-              <div className="book-card-author">{item.author}</div>
-              <div className="badge-row">
-                {item.formatsWanted.includes('physical') && <Badge tone="teal"><BookOpen size={11} /> Physical</Badge>}
-                {item.formatsWanted.includes('audio') && <Badge tone="teal"><Headphones size={11} /> Audio</Badge>}
-                {item.formatsWanted.includes('ebook') && <Badge tone="teal"><Tablet size={11} /> E-book</Badge>}
-              </div>
-            </div>
-            <div className="release-actions">
-              <button className="btn btn-sm btn-forest" onClick={() => onPurchased(item)}>Got it!</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /* ---------------------------------------------------------------- */
 /* Spine navigation                                                   */
 /* ---------------------------------------------------------------- */
@@ -1245,7 +1301,7 @@ function ReadingTracker({ session }) {
     saveBook({
       id: uid(), title: release.title, author: release.author, coverUrl: release.coverUrl || '',
       formats: [], owned: false, status: 'tbr', progressType: data.prefs.defaultProgressType,
-      currentPage: 0, totalPages: 0, percent: 0, isSpicy: false, spicyNotes: [],
+      currentPage: 0, totalPages: 0, percent: 0, isSpicy: false, spicyNotes: [], tropes: [],
       starRating: 0, spiceRating: 0, dateAdded: todayStr(), dateStarted: null, dateFinished: null, notes: '',
     });
     removeRelease(release.id);
@@ -1275,7 +1331,7 @@ function ReadingTracker({ session }) {
         id: uid(), title: item.title, author: item.author, coverUrl: item.coverUrl || '',
         formats: item.formatsWanted.length ? item.formatsWanted : ['physical'], owned: true, status: 'tbr',
         progressType: d.prefs.defaultProgressType, currentPage: 0, totalPages: 0, percent: 0,
-        isSpicy: false, spicyNotes: [], starRating: 0, spiceRating: 0, review: '',
+        isSpicy: false, spicyNotes: [], tropes: [], starRating: 0, spiceRating: 0, review: '',
         dateAdded: todayStr(), dateStarted: null, dateFinished: null, notes: item.notes || '',
       }],
     }));
@@ -1313,8 +1369,7 @@ function ReadingTracker({ session }) {
 
       <main className="app-main">
         {section === 'home' && <HomeView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onLogToday={logToday} onAdd={openAddBook} goToSection={setSection} />}
-        {section === 'shelf' && <ShelfView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} />}
-        {section === 'wishlist' && <WishlistView data={data} onOpen={openEditWishlist} onAdd={openAddWishlist} onPurchased={purchaseWishlistItem} />}
+        {section === 'shelf' && <ShelfView data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} onOpenWishlist={openEditWishlist} onAddWishlist={openAddWishlist} onPurchased={purchaseWishlistItem} />}
         {section === 'tbr' && <StatusListView title="TBR" icon={BookMarked} status="tbr" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Add the books you're excited to get to." />}
         {section === 'reading' && <StatusListView title="Currently reading" icon={BookOpen} status="reading" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Start a book from your TBR shelf." />}
         {section === 'finished' && <StatusListView title="Finished" icon={Check} status="read" data={data} onOpen={openEditBook} onQuickStatus={quickStatus} onAdd={openAddBook} emptyBody="Books you've completed will show up here, with your ratings and reviews." />}
@@ -1409,16 +1464,18 @@ const STYLES = `
 .spine-shelf { padding: 10px 24px 0; }
 .spine-nav { display: flex; align-items: flex-end; gap: 5px; height: 96px; overflow-x: auto; padding-bottom: 0; }
 .spine {
-  writing-mode: vertical-rl; transform: rotate(180deg);
+  writing-mode: vertical-rl; transform: rotate(180deg) translateZ(0);
   min-width: 34px; height: 84px; border: none; border-radius: 7px 7px 2px 2px;
   color: var(--foxing); cursor: pointer; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 8px; padding: 10px 0; font-size: 12.5px; font-weight: 600;
   letter-spacing: 0.03em; box-shadow: inset -3px 0 0 rgba(0,0,0,0.18); transition: transform 0.18s ease, height 0.18s ease, box-shadow 0.18s ease;
   opacity: 0.72; flex-shrink: 0;
+  backface-visibility: hidden; will-change: transform;
+  text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.spine .spine-icon { transform: rotate(90deg); }
+.spine .spine-icon { transform: rotate(90deg) translateZ(0); backface-visibility: hidden; }
 .spine:hover { opacity: 0.92; }
-.spine.active { opacity: 1; transform: translateY(-12px) rotate(180deg); height: 96px; box-shadow: 0 10px 18px rgba(0,0,0,0.35); }
+.spine.active { opacity: 1; transform: translateY(-12px) rotate(180deg) translateZ(0); height: 96px; box-shadow: 0 10px 18px rgba(0,0,0,0.35); }
 .shelf-board { height: 8px; background: linear-gradient(180deg, #3a1f28, #170f12); border-radius: 0 0 6px 6px; margin-top: -2px; }
 
 .app-main { flex: 1; overflow-y: auto; }
@@ -1427,6 +1484,8 @@ const STYLES = `
 .section-heading-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
 .section-heading-row h2 { margin: 0; font-family: Georgia, serif; font-size: 20px; font-weight: 600; }
 .subheading { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ash); margin: 22px 0 10px; font-weight: 600; }
+.trope-filter-bar { margin-bottom: 18px; }
+.trope-filter-bar label { display: block; font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
 
 .btn {
   background: var(--cloth-2); color: var(--foxing); border: 1px solid rgba(185,165,176,0.14);
@@ -1470,6 +1529,7 @@ const STYLES = `
 .badge-chili { background: rgba(118,45,55,0.3); color: #e0aeb5; }
 .badge-forest { background: rgba(111,62,79,0.35); color: #debac7; }
 .badge-muted { background: rgba(147,152,148,0.18); color: var(--ash); }
+.badge-plum { background: rgba(129,88,137,0.35); color: #dcc1e1; }
 .card-progress { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .card-ratings { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
 
@@ -1524,13 +1584,14 @@ const STYLES = `
 .chip { background: var(--endsheet); border: 1px solid rgba(185,165,176,0.14); color: var(--ash); padding: 6px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 .chip-on { background: var(--brass); color: #0e100d; border-color: transparent; }
 .checkbox-row { display: flex; align-items: center; gap: 6px; text-transform: none; font-size: 13px; color: var(--foxing); font-weight: 500; }
-.progress-editor, .spicy-editor, .finish-panel { background: var(--endsheet); border-radius: 10px; padding: 12px; }
+.progress-editor, .spicy-editor, .trope-editor, .finish-panel { background: var(--endsheet); border-radius: 10px; padding: 12px; }
 .percent-row { display: flex; align-items: center; gap: 10px; }
 .percent-row input[type=range] { flex: 1; }
 .pages-row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .spicy-add-row { display: flex; gap: 6px; margin-top: 8px; }
 .spicy-notes-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .spicy-note { background: rgba(118,45,55,0.25); color: #e0aeb5; font-size: 12px; padding: 4px 8px; border-radius: 14px; display: inline-flex; align-items: center; gap: 5px; }
+.spicy-note.trope-note { background: rgba(129,88,137,0.3); color: #dcc1e1; }
 .spicy-note svg { cursor: pointer; }
 .finish-panel { display: flex; flex-direction: column; gap: 10px; }
 .finish-panel-ratings { display: flex; align-items: center; gap: 20px; color: var(--brass); }
