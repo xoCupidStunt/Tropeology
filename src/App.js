@@ -72,18 +72,31 @@ function computeStreak(logDates) {
   return streak;
 }
 
-function computeBestStreak(logDates) {
+function bestStreakRange(logDates) {
   const days = [...new Set(logDates)].sort();
-  if (!days.length) return 0;
-  let best = 1, current = 1;
+  if (!days.length) return { length: 0, start: null, end: null };
+  let bestLen = 1, bestStart = days[0], bestEnd = days[0];
+  let curLen = 1, curStart = days[0];
   for (let i = 1; i < days.length; i++) {
     const prev = new Date(days[i - 1] + 'T00:00:00');
     const curr = new Date(days[i] + 'T00:00:00');
     const diff = Math.round((curr - prev) / 86400000);
-    current = diff === 1 ? current + 1 : 1;
-    if (current > best) best = current;
+    if (diff === 1) { curLen++; } else { curLen = 1; curStart = days[i]; }
+    if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; bestEnd = days[i]; }
   }
-  return best;
+  return { length: bestLen, start: bestStart, end: bestEnd };
+}
+
+function currentStreakRange(logDates) {
+  const length = computeStreak(logDates);
+  if (!length) return { length: 0, start: null, end: null };
+  const set = new Set(logDates);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let anchor = today;
+  if (!set.has(anchor.toISOString().slice(0, 10))) anchor = new Date(anchor.getTime() - 86400000);
+  const end = anchor.toISOString().slice(0, 10);
+  const start = new Date(anchor.getTime() - (length - 1) * 86400000).toISOString().slice(0, 10);
+  return { length, start, end };
 }
 
 function currentWeekDates() {
@@ -166,18 +179,18 @@ function ChiliRating({ value = 0, onChange, size = 18, readOnly = false }) {
   );
 }
 
-function BookCover({ book, w = 64, h = 96, radius = 6 }) {
+function BookCover({ book, w = 64, h = 96, radius = 6, fontSize }) {
   const [errored, setErrored] = useState(false);
   if (book.coverUrl && !errored) {
     return <img src={book.coverUrl} alt={book.title} className="book-cover-img" style={{ width: w, height: h, borderRadius: radius }} onError={() => setErrored(true)} />;
   }
-  return <FallbackCover title={book.title} w={w} h={h} radius={radius} />;
+  return <FallbackCover title={book.title} w={w} h={h} radius={radius} fontSize={fontSize} />;
 }
 
-function FallbackCover({ title, w, h, radius }) {
+function FallbackCover({ title, w, h, radius, fontSize }) {
   return (
     <div className="book-cover-fallback" style={{ width: w, height: h, borderRadius: radius, background: hashHue(title || 'x') }}>
-      <span style={{ fontSize: Math.max(12, w * 0.28) }}>{initialsOf(title)}</span>
+      <span style={{ fontSize: fontSize ?? Math.max(12, (typeof w === 'number' ? w : 64) * 0.28) }}>{initialsOf(title)}</span>
     </div>
   );
 }
@@ -674,7 +687,7 @@ function BookCard({ book, onOpen, onQuickStatus }) {
   const pct = bookPercent(book);
   return (
     <div className="book-card" onClick={() => onOpen(book)}>
-      <BookCover book={book} w={72} h={106} />
+      <BookCover book={book} w={96} h={140} />
       <div className="book-card-info">
         <div className="book-card-title">{book.title}</div>
         <div className="book-card-author">{book.author}</div>
@@ -836,11 +849,12 @@ function HomeView({ data, releases, onOpen, onQuickStatus, onLogToday, onAdd, go
   );
 }
 
-function StreakDetailModal({ data, onClose, onSetManualStreak }) {
-  const streak = computeStreak(data.readingLog);
-  const best = computeBestStreak(data.readingLog);
+function StreakDetailModal({ data, onClose, onSetManualStreakRange }) {
+  const current = currentStreakRange(data.readingLog);
+  const best = bestStreakRange(data.readingLog);
   const [cursor, setCursor] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
-  const [manualValue, setManualValue] = useState(String(streak));
+  const [manualStart, setManualStart] = useState(current.start || todayStr());
+  const [manualEnd, setManualEnd] = useState(current.end || todayStr());
   const cells = useMemo(() => getMonthGrid(cursor.year, cursor.month), [cursor]);
 
   const shift = (delta) => setCursor(c => {
@@ -850,8 +864,7 @@ function StreakDetailModal({ data, onClose, onSetManualStreak }) {
   });
 
   const apply = () => {
-    const n = parseInt(manualValue, 10);
-    if (!isNaN(n) && n > 0) onSetManualStreak(n);
+    if (manualStart && manualEnd) onSetManualStreakRange(manualStart, manualEnd);
   };
 
   return (
@@ -861,12 +874,14 @@ function StreakDetailModal({ data, onClose, onSetManualStreak }) {
         <div className="form-body">
           <div className="streak-stats-row">
             <div className="streak-stat">
-              <div className="stat-num mono">{streak}</div>
+              <div className="stat-num mono">{current.length}</div>
               <div className="stat-label">current streak</div>
+              {current.length > 0 && <div className="mono small ash">{current.start} → {current.end}</div>}
             </div>
             <div className="streak-stat">
-              <div className="stat-num mono">{best}</div>
+              <div className="stat-num mono">{best.length}</div>
               <div className="stat-label">best streak</div>
+              {best.length > 0 && <div className="mono small ash">{best.start} → {best.end}</div>}
             </div>
           </div>
 
@@ -893,9 +908,19 @@ function StreakDetailModal({ data, onClose, onSetManualStreak }) {
           </div>
 
           <label>Set current streak manually</label>
-          <p className="form-hint">Tracking your reading somewhere else too? Enter your real current streak to back-fill it here — this only adds days, it won't shrink an existing streak.</p>
-          <div className="search-input-row">
-            <input type="number" min="0" value={manualValue} onChange={e => setManualValue(e.target.value)} style={{ width: 100 }} />
+          <p className="form-hint">Tracking your reading somewhere else too? Enter the start and end dates of your real streak to back-fill it here — this only adds days, it won't shrink an existing streak.</p>
+          <div className="goal-dates-row">
+            <div>
+              <label>Start</label>
+              <input type="date" value={manualStart} onChange={e => setManualStart(e.target.value)} />
+            </div>
+            <div>
+              <label>End</label>
+              <input type="date" value={manualEnd} onChange={e => setManualEnd(e.target.value)} />
+            </div>
+          </div>
+          <div className="modal-actions">
+            <div style={{ flex: 1 }} />
             <button className="btn btn-brass" onClick={apply}>Save</button>
           </div>
         </div>
@@ -1061,7 +1086,11 @@ function CalendarView({ data, bg, setBg }) {
                 <div key={i} className="cal-cell">
                   <span className="cal-day-num mono">{day}</span>
                   <div className="cal-cell-covers">
-                    {finished.slice(0, 3).map(b => <BookCover key={b.id} book={b} w={32} h={46} radius={4} />)}
+                    {finished.slice(0, 3).map(b => (
+                      <div key={b.id} className="cal-cover-slot">
+                        <BookCover book={b} w="100%" h="100%" radius={4} fontSize={finished.length > 1 ? 12 : 22} />
+                      </div>
+                    ))}
                     {finished.length > 3 && <span className="mono cal-more">+{finished.length - 3}</span>}
                   </div>
                 </div>
@@ -1599,17 +1628,16 @@ function ReadingTracker({ session }) {
   };
   const openReleaseDetail = (release) => setModal({ type: 'releaseDetail', payload: release });
   const openStreakDetail = () => setModal({ type: 'streak' });
-  const setManualStreak = (n) => {
-    if (!Number.isFinite(n) || n <= 0) return;
+  const setManualStreakRange = (startStr, endStr) => {
+    const start = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return;
+    const days = Math.round((end - start) / 86400000) + 1;
+    if (days > 3650) return;
     setData(d => {
       const dates = new Set(d.readingLog);
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      let anchor = today;
-      if (!dates.has(anchor.toISOString().slice(0, 10))) {
-        anchor = new Date(anchor.getTime() - 86400000);
-      }
-      for (let i = 0; i < n; i++) {
-        dates.add(new Date(anchor.getTime() - i * 86400000).toISOString().slice(0, 10));
+      for (let i = 0; i < days; i++) {
+        dates.add(new Date(start.getTime() + i * 86400000).toISOString().slice(0, 10));
       }
       return { ...d, readingLog: Array.from(dates) };
     });
@@ -1708,7 +1736,7 @@ function ReadingTracker({ session }) {
         />
       )}
       {modal?.type === 'wishlist' && <WishlistFormModal initial={modal.payload} onSave={saveWishlistItem} onDelete={deleteWishlistItem} onClose={() => setModal(null)} />}
-      {modal?.type === 'streak' && <StreakDetailModal data={data} onClose={() => setModal(null)} onSetManualStreak={setManualStreak} />}
+      {modal?.type === 'streak' && <StreakDetailModal data={data} onClose={() => setModal(null)} onSetManualStreakRange={setManualStreakRange} />}
 
       <style>{STYLES}</style>
     </div>
@@ -1849,7 +1877,7 @@ const STYLES = `
 .stat-label { color: var(--ash); font-size: 12px; margin-top: -6px; }
 .stat-sub { font-size: 11.5px; color: var(--ash); }
 
-.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
 .book-card { display: flex; gap: 12px; background: var(--cloth); border-radius: 12px; padding: 12px; cursor: pointer; transition: transform 0.12s, background 0.12s; }
 .book-card:hover { transform: translateY(-2px); background: var(--cloth-2); }
 .book-cover-img { object-fit: cover; flex-shrink: 0; }
@@ -1857,7 +1885,7 @@ const STYLES = `
 .book-card-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
 .book-card-title { font-weight: 700; font-size: 14px; line-height: 1.25; }
 .book-card-author { color: var(--ash); font-size: 12.5px; }
-.book-card-blurb { color: var(--ash); font-size: 11.5px; line-height: 1.35; margin: 1px 0; }
+.book-card-blurb { color: var(--ash); font-size: 11.5px; line-height: 1.35; margin: 1px 0; white-space: pre-line; }
 .badge-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
 .badge { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; }
 .badge-teal { background: rgba(118,86,118,0.35); color: #e1c1e1; }
@@ -1943,11 +1971,12 @@ const STYLES = `
 .cal-panel { border-radius: 12px; padding: 16px; }
 .cal-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--ash); margin-bottom: 6px; font-weight: 700; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-cell { min-height: 100px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
+.cal-cell { min-height: 120px; border: 1px solid rgba(185,165,176,0.12); border-radius: 6px; padding: 4px; display: flex; flex-direction: column; gap: 3px; }
 .cal-cell.empty { border: none; }
-.cal-day-num { font-size: 11px; color: rgba(185,165,176,0.75); }
-.cal-cell-covers { display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto; }
-.cal-more { font-size: 11px; color: var(--brass); align-self: center; }
+.cal-day-num { font-size: 11px; color: rgba(185,165,176,0.75); flex-shrink: 0; }
+.cal-cell-covers { display: flex; gap: 3px; flex: 1; min-height: 0; }
+.cal-cover-slot { flex: 1; min-width: 0; display: flex; }
+.cal-more { font-size: 11px; color: var(--brass); align-self: flex-end; }
 .cal-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; margin-top: 16px; }
 .cal-controls label { display: block; font-size: 11.5px; color: var(--ash); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
 .cal-controls input[type=range] { width: 100%; }
@@ -1971,7 +2000,7 @@ const STYLES = `
 .release-info { flex: 1; min-width: 0; }
 .release-countdown { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .release-actions { display: flex; align-items: center; gap: 6px; }
-.release-detail-blurb { font-size: 13px; line-height: 1.5; color: var(--foxing); margin: 4px 0 0; }
+.release-detail-blurb { font-size: 13px; line-height: 1.5; color: var(--foxing); margin: 4px 0 0; white-space: pre-line; }
 
 @media (max-width: 640px) {
   .form-grid-2 { grid-template-columns: 1fr; }

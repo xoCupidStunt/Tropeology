@@ -54,6 +54,33 @@ function toPlainText(html) {
     .replace(/\s+/g, ' ');
 }
 
+// Goodreads truncates the visible blurb with a "…more" toggle, but the full
+// text is already present in the HTML (the truncation is CSS/JS-driven) —
+// find that container rather than relying on og:description, which Goodreads
+// itself truncates for social-share purposes.
+function extractGoodreadsBlurbHtml(html) {
+  const startIdx = html.search(/data-testid="description"/i);
+  if (startIdx === -1) return null;
+  const openTagEnd = html.indexOf('>', startIdx);
+  if (openTagEnd === -1) return null;
+  const window = html.slice(openTagEnd + 1, openTagEnd + 1 + 8000);
+  const stopMatch = window.search(/<button[\s\S]{0,80}(more|less)/i);
+  return stopMatch !== -1 ? window.slice(0, stopMatch) : window;
+}
+
+// Converts a blurb HTML fragment to plain text while preserving paragraph
+// breaks (<br>/</p>) as real newlines, instead of collapsing them away.
+function htmlFragmentToText(fragment) {
+  if (!fragment) return null;
+  let text = fragment
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p\s*>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '');
+  text = decodeHtmlEntities(text);
+  text = text.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return text || null;
+}
+
 module.exports = async (req, res) => {
   const { url } = req.query;
   if (!url || typeof url !== 'string') {
@@ -134,11 +161,14 @@ module.exports = async (req, res) => {
       return;
     }
 
+    const domBlurb = htmlFragmentToText(extractGoodreadsBlurbHtml(html));
+    const finalBlurb = domBlurb || decodeHtmlEntities(blurb) || decodeHtmlEntities(ogDescription) || null;
+
     res.status(200).json({
       title: decodeHtmlEntities(ogTitle) || null,
       author: decodeHtmlEntities(author) || null,
       coverUrl: ogImage || null,
-      blurb: decodeHtmlEntities(ogDescription || blurb) || null,
+      blurb: finalBlurb,
       releaseDate: normalizeDate(releaseDate),
     });
   } catch (e) {
