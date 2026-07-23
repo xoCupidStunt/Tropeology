@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  BookOpen, Headphones, Flame, Target, CalendarDays, Sparkles, Plus, X,
+  BookOpen, Headphones, Flame, Target, CalendarDays, Plus, X,
   Upload, Search, Check, Trash2, Pencil, ChevronLeft, ChevronRight, Star,
-  Download, Settings, Home, Library, Clock, PartyPopper, BookMarked,
+  Download, Home, Library, Clock, PartyPopper, BookMarked,
   Tablet, ShoppingCart, Quote, LogOut
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
